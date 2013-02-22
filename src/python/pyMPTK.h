@@ -100,8 +100,12 @@ static PyTypeObject bookType = {
 ////////////////////////////////////////////////////
 // module methods
 
+PyObject * mptk_loadconfig(PyObject *self, PyObject *args);
+
 PyObject * mptk_decompose(PyObject *self, PyObject *args);
-int        mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, const int samplerate, const unsigned long int numiters, const char *method, const bool getdecay);
+
+struct mptk_decompose_result { PyArrayObject* residual; };
+int mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, const int samplerate, const unsigned long int numiters, const char *method, const bool getdecay, mptk_decompose_result& result);
 
 MPTK_LIB_EXPORT extern PyArrayObject* mp_create_numpyarray_from_signal(MP_Signal_c *signal);
 MPTK_LIB_EXPORT extern MP_Signal_c*   mp_create_signal_from_numpyarray(const PyArrayObject *nparray);
