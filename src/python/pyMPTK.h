@@ -3,6 +3,7 @@
 
 #include <Python.h>
 #include <structmember.h>
+#include "numpy/arrayobject.h"
 
 #define HAVE_FFTW3 1
 
@@ -96,6 +97,14 @@ static PyTypeObject bookType = {
     book_new,                 /* tp_new */
 };
 
+////////////////////////////////////////////////////
+// module methods
+
+PyObject * mptk_decompose(PyObject *self, PyObject *args);
+int        mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, const int samplerate, const unsigned long int numiters, const char *method, const bool getdecay);
+
+MPTK_LIB_EXPORT extern PyArrayObject* mp_create_numpyarray_from_signal(MP_Signal_c *signal);
+MPTK_LIB_EXPORT extern MP_Signal_c*   mp_create_signal_from_numpyarray(const PyArrayObject *nparray);
 
 #endif
 
