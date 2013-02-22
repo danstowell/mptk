@@ -6,6 +6,7 @@ MP_Signal_c* mp_create_signal_from_numpyarray(const PyArrayObject *nparray){
 	unsigned      int nchans= nparray->dimensions[1];
 	float *signal_data = (float *)nparray->data;
 	const char *func = "mp_create_signal_from_numpyarray()";
+	printf("%s - numpy array has %d channels, %d samples\n", func, (int)nchans, (int)nspls);
 
 	if(2 != nparray->nd) {
 		mp_error_msg(func,"input signal should be a numSamples x numChans matrix");
@@ -19,13 +20,9 @@ MP_Signal_c* mp_create_signal_from_numpyarray(const PyArrayObject *nparray){
 		return(NULL);
 	}
 
-	// Copying content
-	unsigned long int sample;
-	int channel;
-
-	// TODO LATER: consider whether in-place operation is possible
-	for (channel=0; channel < nchans; ++channel) {
-		for (sample=0; sample < nspls; ++sample) {
+	// Copying content. NB I'm quite confident in-place operation is not a good idea, since mptk modifies the signal in-place
+	for (unsigned int channel=0; channel < nchans; ++channel) {
+		for (unsigned long int sample=0; sample < nspls; ++sample) {
 			signal->channel[channel][sample] =  signal_data[channel*nspls +  sample];
 		}
 	}
@@ -39,12 +36,8 @@ MP_Signal_c* mp_create_signal_from_numpyarray(const PyArrayObject *nparray){
 // The implementation of the main number-crunching calls goes here though.
 
 int
-mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, const int samplerate, const unsigned long int numiters, const char *method, const bool getdecay){
+mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, const int samplerate, const unsigned long int numiters, const char *method, const bool getdecay, mptk_decompose_result& result){
 	// book, residual, decay = mptk.decompose(sig, dictpath, samplerate, [ numiters=10, method='mp', getdecay=False ])
-	int signal_nspls = numpysignal->dimensions[0];
-	int signal_nchans= numpysignal->dimensions[1];
-	float *signal_data = (float *)numpysignal->data;
-	printf("mptk_decompose_body: numpy array has %d channels, %d samples\n", signal_nspls, signal_nchans);
 
 	////////////////////////////////////////////////////////////
 	// get signal in mem in appropriate format
@@ -109,16 +102,11 @@ mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, cons
 
 	// Get results - book, residual, decay. as a first pass, maybe we should write the book to disk, return the residual, ignore the decay (useDecay=false).
 
+	result.residual = mp_create_numpyarray_from_signal(signal); // residual is in here (i.e. the "signal" is updated in-place)
 
-
-
-
-
-	/*
 	delete signal;
 	delete dict;
 	delete book;
-	*/
 	delete mpdCore;
 
 	return 0;
