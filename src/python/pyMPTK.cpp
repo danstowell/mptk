@@ -2,9 +2,14 @@
 #define PY_ARRAY_UNIQUE_SYMBOL Py_Array_API_pymptk
 #include "pyMPTK.h"
 
+/**
+* Author: Dan Stowell
+* Description: This file defines the initialisation for the module etc, as well as the bits which get data in/out of PyArray format.
+*/
+
 static PyMethodDef module_methods[] = {
 	{"loadconfig", mptk_loadconfig, METH_VARARGS, "load MPTK config file from a specific path. do this BEFORE running decompose() etc."},
-	{"decompose" , mptk_decompose,  METH_VARARGS, "decompose a signal into a 'book' and residual, using Matching Pursuit or related methods."},
+	{"decompose" , (PyCFunction) mptk_decompose,  METH_VARARGS | METH_KEYWORDS, "decompose a signal into a 'book' and residual, using Matching Pursuit or related methods."},
 	{NULL}  /* Sentinel */
 };
 
@@ -14,9 +19,9 @@ mptk_loadconfig(PyObject *self, PyObject *args)
 	const char *cfgpath;
 	if (!PyArg_ParseTuple(args, "s:mptk_loadconfig", &cfgpath))
 		return NULL;
-	printf("mptk_loadconfig: parsed args\n");
+	//printf("mptk_loadconfig: parsed args\n");
 	int result = MPTK_Env_c::get_env()->load_environment(cfgpath);
-	printf("mptk_loadconfig: done, result %i, about to return\n", result);
+	//printf("mptk_loadconfig: done, result %i, about to return\n", result);
 	return Py_BuildValue("i", result);
 }
 
@@ -44,7 +49,7 @@ PyArrayObject* mp_create_numpyarray_from_signal(MP_Signal_c *signal){
 
 // This method needs to stay in the same file as initmptk(), because of the use of import_array()
 PyObject *
-mptk_decompose(PyObject *self, PyObject *args)
+mptk_decompose(PyObject *self, PyObject *args, PyObject *keywds)
 {
 	// book, residual, decay = mptk.decompose(sig, dictpath, samplerate, [ numiters=10, method='mp', getdecay=False ])
 	PyObject *pysignal; // note: do not touch the referencecount for this
@@ -54,9 +59,13 @@ mptk_decompose(PyObject *self, PyObject *args)
 	unsigned long int numiters=10;
 	const char *method="mp";
 	int getdecay=0;
-	if (!PyArg_ParseTuple(args, "Osi|ksi:mptk_decompose", &pysignal, &dictpath, &samplerate, &numiters, &method, &getdecay))
+	const char *bookpath="";
+	static char *kwlist[] = {"signal", "dictpath", "samplerate", "numiters", "method", "getdecay", "bookpath", NULL};
+	if (!PyArg_ParseTupleAndKeywords(args, keywds, "Osi|ksis", kwlist,
+		&pysignal, &dictpath, &samplerate,
+		&numiters, &method, &getdecay, &bookpath))
 		return NULL;
-	printf("mptk_decompose: parsed args\n");
+	//printf("mptk_decompose: parsed args\n");
 
 	// Now to get a usable numpy array from the opaque obj
 	// TODO: currently can only handle arrays with dtype=float32. Is there a way to automatically convert if needed?
@@ -71,7 +80,7 @@ mptk_decompose(PyObject *self, PyObject *args)
 	mptk_decompose_result result;
 	int intresult = mptk_decompose_body(numpysignal, dictpath, samplerate, numiters, method, getdecay==0, result);
 
-	printf("mptk_decompose: about to return\n");
+	//printf("mptk_decompose: about to return\n");
 	Py_DECREF(numpysignal); // destroy the contig array
 	return Py_BuildValue("iOi", 37, result.residual, 31); // LATER return (book, residual, decay)
 }
@@ -103,5 +112,5 @@ initmptk(void)
     PyModule_AddObject(m, "book", (PyObject *)&bookType);
 
     import_array(); // numpy init -- must be called after InitModule
-    printf("Py_InitModule3(mptk) OK, and done import_array()\n");
+    //printf("Py_InitModule3(mptk) OK, and done import_array()\n");
 }
