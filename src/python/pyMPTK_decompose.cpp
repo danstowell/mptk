@@ -36,7 +36,7 @@ MP_Signal_c* mp_create_signal_from_numpyarray(const PyArrayObject *nparray){
 // The implementation of the main number-crunching calls goes here though.
 
 int
-mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, const int samplerate, const unsigned long int numiters, const char *method, const bool getdecay, mptk_decompose_result& result){
+mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, const int samplerate, const unsigned long int numiters, const char *method, const bool getdecay, const char* bookpath, mptk_decompose_result& result){
 	// book, residual, decay = mptk.decompose(sig, dictpath, samplerate, [ numiters=10, method='mp', getdecay=False ])
 
 	////////////////////////////////////////////////////////////
@@ -82,7 +82,7 @@ mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, cons
 	unsigned long int reportHit = 10;  // To parameterize
 	// Set stopping condition
 	mpdCore->set_iter_condition( numiters );
-	mpdCore->set_save_hit(ULONG_MAX,NULL,NULL,NULL); // OR we could let the user specify paths to save to?
+	mpdCore->set_save_hit(ULONG_MAX, bookpath, NULL, NULL); // OR we could let the user specify paths to save to?
 	mpdCore->set_report_hit(reportHit);
 	if(getdecay) mpdCore->set_use_decay();
 
@@ -101,6 +101,12 @@ mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, cons
 
 
 	// Get results - book, residual, decay. as a first pass, maybe we should write the book to disk, return the residual, ignore the decay (useDecay=false).
+
+	// write book XML to disk.
+	if(bookpath!=NULL && bookpath[0] != NULL){
+		mpdCore->save_result();
+	}
+
 
 	result.residual = mp_create_numpyarray_from_signal(signal); // residual is in here (i.e. the "signal" is updated in-place)
 
