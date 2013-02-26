@@ -50,7 +50,7 @@ static PyMethodDef book_methods[] = {
 static PyTypeObject bookType = {
     PyObject_HEAD_INIT(NULL)
     0,                         /*ob_size*/
-    "pyMPTK.book",             /*tp_name*/
+    "mptk.book",               /*tp_name*/
     sizeof(book),             /*tp_basicsize*/
     0,                         /*tp_itemsize*/
     (destructor)book_dealloc, /*tp_dealloc*/
@@ -96,7 +96,7 @@ PyObject * mptk_loadconfig(PyObject *self, PyObject *args);
 
 PyObject * mptk_decompose(PyObject *self, PyObject *args, PyObject *keywds);
 
-struct mptk_decompose_result { PyArrayObject* residual; };
+struct mptk_decompose_result { book* thebook; PyArrayObject* residual; };
 int mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, const int samplerate, const unsigned long int numiters, const char *method, const bool getdecay, const char* bookpath, mptk_decompose_result& result);
 
 MPTK_LIB_EXPORT extern PyArrayObject* mp_create_numpyarray_from_signal(MP_Signal_c *signal);

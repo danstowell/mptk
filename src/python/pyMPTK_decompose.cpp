@@ -63,19 +63,19 @@ mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, cons
 	// Configure and run
 
 	// Set up core and book obj
-	MP_Book_c *book = MP_Book_c::create(signal->numChans, signal->numSamples, signal->sampleRate );
-	if ( NULL == book )  {
+	MP_Book_c *mpbook = MP_Book_c::create(signal->numChans, signal->numSamples, signal->sampleRate );
+	if ( NULL == mpbook )  {
 	    printf("Failed to create a book object.\n" );
 	    delete signal;
 	    delete dict;
 	    return 3;
 	}
-	MP_Mpd_Core_c *mpdCore =  MP_Mpd_Core_c::create( signal, book, dict );
+	MP_Mpd_Core_c *mpdCore =  MP_Mpd_Core_c::create( signal, mpbook, dict );
 	if ( NULL == mpdCore )  {
 	    printf("Failed to create a MPD core object.\n" );
 	    delete signal;
 	    delete dict;
-	    delete book;
+	    delete mpbook;
 	    return 4;
 	}
 
@@ -107,12 +107,16 @@ mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, cons
 		mpdCore->save_result();
 	}
 
+	// create python book object, which will be returned
+	book* thebook = (book*)PyObject_CallObject((PyObject *) &bookType, NULL); // TODO is it safe to use NULL to mean empty arglist?
+	book_append_atoms_from_mpbook(thebook, mpbook);
 
+	result.thebook = thebook;
 	result.residual = mp_create_numpyarray_from_signal(signal); // residual is in here (i.e. the "signal" is updated in-place)
 
 	delete signal;
 	delete dict;
-	delete book;
+	delete mpbook;
 	delete mpdCore;
 
 	return 0;
