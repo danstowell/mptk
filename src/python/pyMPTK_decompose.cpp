@@ -1,6 +1,8 @@
 #include "pyMPTK.h"
 #include "mpd_core.h"
 
+extern PyTypeObject bookType;
+
 MP_Signal_c* mp_create_signal_from_numpyarray(const PyArrayObject *nparray){
 	unsigned long int nspls = nparray->dimensions[0];
 	unsigned      int nchans= nparray->dimensions[1];
@@ -108,7 +110,7 @@ mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, cons
 	}
 
 	// create python book object, which will be returned
-	BookObject* thebook = (BookObject*)PyObject_CallObject((PyObject *) &bookType, NULL); // TODO is it safe to use NULL to mean empty arglist?
+	BookObject* thebook = (BookObject*)PyObject_CallObject((PyObject *) &bookType, NULL);
 	book_append_atoms_from_mpbook(thebook, mpbook);
 
 	result.thebook = thebook;
