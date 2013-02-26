@@ -32,69 +32,79 @@ PyObject *
 book_read(book* self, PyObject *args)
 {
 	char *filename;
-	int n,m;
-	PyObject *tmp;
 
 	if (!PyArg_ParseTuple(args, "s", &filename))
 		return NULL;
 
 	self->book->load( filename );
 
-	int numAtoms = self->book->numAtoms;
 	self->numChans = self->book->numChans;
 	self->numSamples = self->book->numSamples;
 	self->sampleRate = self->book->sampleRate;
 
+	int result = book_append_atoms_from_mpbook(self, self->book);
+	return Py_BuildValue("i", result);
+}
+
+// This is intended only to be used by the internal functions which read from file or from memory. It doesn't ensure the self->book and book are in sync.
+int
+book_append_atoms_from_mpbook(book* self, MP_Book_c *mpbook)
+{
+	int numAtoms = mpbook->numAtoms;
+	int n,m;
+	PyObject *tmp;
+	if(self->numChans   != mpbook->numChans  ){ return 1; }
+	if(self->numSamples != mpbook->numSamples){ return 2; }
 	for ( n=0 ; n<numAtoms ; ++n ) {
 
 		// Create a dict representing one atom, containing all its properties
 		PyObject* atom = PyDict_New();
-		PyDict_SetItemString(atom, "type", Py_BuildValue("s", self->book->atom[n]->type_name()));
+		PyDict_SetItemString(atom, "type", Py_BuildValue("s", mpbook->atom[n]->type_name()));
 		// len
 		tmp = PyList_New(0);
 		for ( m=0 ; m<self->numChans ; m++ ) {
-			if ( self->book->atom[n]->has_field(0) ) {
-				PyList_Append( tmp, Py_BuildValue("i", (int)self->book->atom[n]->get_field(0,m)));
+			if ( mpbook->atom[n]->has_field(0) ) {
+				PyList_Append( tmp, Py_BuildValue("i", (int)mpbook->atom[n]->get_field(0,m)));
 			}
 		}
 		PyDict_SetItemString(atom, "len", tmp);
 		// pos
 		tmp = PyList_New(0);
 		for ( m=0 ; m<self->numChans ; m++ ) {
-			if ( self->book->atom[n]->has_field(1) ) {
-				PyList_Append( tmp, Py_BuildValue("i", (int)self->book->atom[n]->get_field(1,m)));
+			if ( mpbook->atom[n]->has_field(1) ) {
+				PyList_Append( tmp, Py_BuildValue("i", (int)mpbook->atom[n]->get_field(1,m)));
 			}
 		}
 		PyDict_SetItemString(atom, "pos", tmp);
 		// freq
 		tmp = PyList_New(0);
 		for ( m=0 ; m<self->numChans ; m++ ) {
-			if ( self->book->atom[n]->has_field(2) ) {
-				PyList_Append( tmp, Py_BuildValue("d", self->book->atom[n]->get_field(2,m)));
+			if ( mpbook->atom[n]->has_field(2) ) {
+				PyList_Append( tmp, Py_BuildValue("d", mpbook->atom[n]->get_field(2,m)));
 			}
 		}
 		PyDict_SetItemString(atom, "freq", tmp);
 		// amp
 		tmp = PyList_New(0);
 		for ( m=0 ; m<self->numChans ; m++ ) {
-			if ( self->book->atom[n]->has_field(3) ) {
-				PyList_Append( tmp, Py_BuildValue("d", self->book->atom[n]->get_field(3,m)));
+			if ( mpbook->atom[n]->has_field(3) ) {
+				PyList_Append( tmp, Py_BuildValue("d", mpbook->atom[n]->get_field(3,m)));
 			}
 		}
 		PyDict_SetItemString(atom, "amp", tmp);
 		// phase
 		tmp = PyList_New(0);
 		for ( m=0 ; m<self->numChans ; m++ ) {
-			if ( self->book->atom[n]->has_field(4) ) {
-				PyList_Append( tmp, Py_BuildValue("d", self->book->atom[n]->get_field(4,m)));
+			if ( mpbook->atom[n]->has_field(4) ) {
+				PyList_Append( tmp, Py_BuildValue("d", mpbook->atom[n]->get_field(4,m)));
 			}
 		}
 		PyDict_SetItemString(atom, "phase", tmp);
 		// chirp
 		tmp = PyList_New(0);
 		for ( m=0 ; m<self->numChans ; m++ ) {
-			if ( self->book->atom[n]->has_field(5) ) {
-				PyList_Append( tmp, Py_BuildValue("d", self->book->atom[n]->get_field(5,m)));
+			if ( mpbook->atom[n]->has_field(5) ) {
+				PyList_Append( tmp, Py_BuildValue("d", mpbook->atom[n]->get_field(5,m)));
 			}
 		}
 		PyDict_SetItemString(atom, "chirp", tmp);
@@ -102,7 +112,7 @@ book_read(book* self, PyObject *args)
 		PyList_Append(self->atoms, atom);
 	}
 
-	return Py_BuildValue("i", 0);
+	return 0;
 }
 
 PyObject *

@@ -33,6 +33,8 @@ void       book_dealloc(book* self);
 PyObject * book_new(PyTypeObject *type, PyObject *args, PyObject *kwds);
 int        book_init(book *self, PyObject *args, PyObject *kwds);
 PyObject * book_read(book* self, PyObject *args);
+// This is intended only to be used by the internal functions which read from file or from memory. It doesn't ensure the self->book and book are in sync.
+int book_append_atoms_from_mpbook(book* self, MP_Book_c *mpbook);
 PyObject * book_short_info(book* self);
 
 static PyMethodDef book_methods[] = {
