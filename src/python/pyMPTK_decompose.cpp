@@ -108,7 +108,7 @@ mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, cons
 	}
 
 	// create python book object, which will be returned
-	book* thebook = (book*)PyObject_CallObject((PyObject *) &bookType, NULL); // TODO is it safe to use NULL to mean empty arglist?
+	BookObject* thebook = (BookObject*)PyObject_CallObject((PyObject *) &bookType, NULL); // TODO is it safe to use NULL to mean empty arglist?
 	book_append_atoms_from_mpbook(thebook, mpbook);
 
 	result.thebook = thebook;

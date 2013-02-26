@@ -1,7 +1,7 @@
 #include "pyMPTK.h"
 
 void
-book_dealloc(book* self)
+book_dealloc(BookObject* self)
 {
 	self->ob_type->tp_free((PyObject*)self);
 }
@@ -10,10 +10,10 @@ PyObject *
 book_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
 	MPTK_Env_c::get_env()->load_environment_if_needed("");
-	book *self;
+	BookObject *self;
 
-	self = (book *)type->tp_alloc(type, 0);
-	self->book = MP_Book_c::create();
+	self = (BookObject *)type->tp_alloc(type, 0);
+	self->mpbook = MP_Book_c::create();
 	// NB the values below, book_append_atoms_from_mpbook() will overwrite them iff 0
 	self->numChans = 0;
 	self->numSamples = 0;
@@ -24,28 +24,28 @@ book_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 }
 
 int
-book_init(book *self, PyObject *args, PyObject *kwds)
+book_init(BookObject *self, PyObject *args, PyObject *kwds)
 {
 	return 0;
 }
 
 PyObject *
-book_read(book* self, PyObject *args)
+book_read(BookObject* self, PyObject *args)
 {
 	char *filename;
 
 	if (!PyArg_ParseTuple(args, "s", &filename))
 		return NULL;
 
-	self->book->load( filename );
+	self->mpbook->load( filename );
 
-	int result = book_append_atoms_from_mpbook(self, self->book);
+	int result = book_append_atoms_from_mpbook(self, self->mpbook);
 	return Py_BuildValue("i", result);
 }
 
-// This is intended only to be used by the internal functions which read from file or from memory. It doesn't ensure the self->book and book are in sync.
+// This is intended only to be used by the internal functions which read from file or from memory. It doesn't ensure the self->mpbook and mpbook are in sync.
 int
-book_append_atoms_from_mpbook(book* self, MP_Book_c *mpbook)
+book_append_atoms_from_mpbook(BookObject* self, MP_Book_c *mpbook)
 {
 	int numAtoms = mpbook->numAtoms;
 	int n,m;
@@ -121,9 +121,9 @@ book_append_atoms_from_mpbook(book* self, MP_Book_c *mpbook)
 }
 
 PyObject *
-book_short_info(book* self)
+book_short_info(BookObject* self)
 {
-	self->book->short_info();
+	self->mpbook->short_info();
 	return Py_BuildValue("i", 0);
 }
 
