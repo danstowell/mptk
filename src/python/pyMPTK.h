@@ -15,13 +15,19 @@
 typedef struct {
 	PyObject_HEAD
 	MP_Book_c *book;
-	int numAtoms;
 	int numChans;
 	int numSamples;
 	int sampleRate;
-	PyObject *atomType;
-	PyObject *atomParams;
+	PyObject *atoms;
 } book;
+
+static PyMemberDef book_members[] = {
+	{"numChans",   T_INT,       offsetof(book, numChans),   0, "number of chanels"},
+	{"numSamples", T_INT,       offsetof(book, numSamples), 0, "number of samples"},
+	{"sampleRate", T_INT,       offsetof(book, sampleRate), 0, "sample rate"},
+	{"atoms",      T_OBJECT_EX, offsetof(book, atoms),      0, "list of atoms (each a dict)"},
+	{NULL}  /* Sentinel */
+};
 
 void       book_dealloc(book* self);
 PyObject * book_new(PyTypeObject *type, PyObject *args, PyObject *kwds);
@@ -36,22 +42,6 @@ static PyMethodDef book_methods[] = {
 	{"short_info", (PyCFunction)book_short_info, METH_NOARGS,
 		"print short info"
 		},
-	{NULL}  /* Sentinel */
-};
-
-static PyMemberDef book_members[] = {
-	{"numAtoms", T_INT, offsetof(book, numAtoms), 0,
-		"number of atoms"},
-	{"numChans", T_INT, offsetof(book, numChans), 0,
-		"number of chanels"},
-	{"numSamples", T_INT, offsetof(book, numSamples), 0,
-		"number of samples"},
-	{"sampleRate", T_INT, offsetof(book, sampleRate), 0,
-		"sample rate"},
-	{"atomType", T_OBJECT_EX, offsetof(book, atomType), 0,
-		"atom type"},
-	{"atomParams", T_OBJECT_EX, offsetof(book, atomParams), 0,
-		"atom parameters"},
 	{NULL}  /* Sentinel */
 };
 
