@@ -14,9 +14,10 @@ book_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 	self = (book *)type->tp_alloc(type, 0);
 	self->book = MP_Book_c::create();
+	// NB the values below, book_append_atoms_from_mpbook() will overwrite them iff 0
 	self->numChans = 0;
 	self->numSamples = 0;
-	self->sampleRate = 44100;
+	self->sampleRate = 0;
 	self->atoms = PyList_New(0);
 
 	return (PyObject *)self;
@@ -38,10 +39,6 @@ book_read(book* self, PyObject *args)
 
 	self->book->load( filename );
 
-	self->numChans = self->book->numChans;
-	self->numSamples = self->book->numSamples;
-	self->sampleRate = self->book->sampleRate;
-
 	int result = book_append_atoms_from_mpbook(self, self->book);
 	return Py_BuildValue("i", result);
 }
@@ -53,8 +50,21 @@ book_append_atoms_from_mpbook(book* self, MP_Book_c *mpbook)
 	int numAtoms = mpbook->numAtoms;
 	int n,m;
 	PyObject *tmp;
-	if(self->numChans   != mpbook->numChans  ){ return 1; }
-	if(self->numSamples != mpbook->numSamples){ return 2; }
+	if(self->numChans==0){
+		self->numChans = mpbook->numChans;
+	}else if(self->numChans != mpbook->numChans ){
+		return 1;
+	}
+	if(self->numSamples==0){
+		self->numSamples = mpbook->numSamples;
+	}else if(self->numSamples != mpbook->numSamples ){
+		return 2;
+	}
+	if(self->sampleRate==0){
+		self->sampleRate = mpbook->sampleRate;
+	}else if(self->sampleRate != mpbook->sampleRate ){
+		return 3;
+	}
 	for ( n=0 ; n<numAtoms ; ++n ) {
 
 		// Create a dict representing one atom, containing all its properties

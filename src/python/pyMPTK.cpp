@@ -82,7 +82,7 @@ mptk_decompose(PyObject *self, PyObject *args, PyObject *keywds)
 
 	//printf("mptk_decompose: about to return\n");
 	Py_DECREF(numpysignal); // destroy the contig array
-	return Py_BuildValue("iOi", 37, result.residual, 31); // LATER return (book, residual, decay)
+	return Py_BuildValue("OOO", result.thebook, result.residual, Py_None); // TODO: return decay as third item
 }
 
 
