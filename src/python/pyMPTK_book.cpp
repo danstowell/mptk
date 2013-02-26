@@ -59,59 +59,54 @@ book_append_atoms_from_mpbook(book* self, MP_Book_c *mpbook)
 
 		// Create a dict representing one atom, containing all its properties
 		PyObject* atom = PyDict_New();
+		/////////////////////////////////
+		// Mono properties:
 		PyDict_SetItemString(atom, "type", Py_BuildValue("s", mpbook->atom[n]->type_name()));
+		// freq
+		if ( mpbook->atom[n]->has_field(MP_FREQ_PROP) ) {
+			PyDict_SetItemString(atom, "freq", Py_BuildValue("d", mpbook->atom[n]->get_field(MP_FREQ_PROP, 0)));
+		}
+		// chirp
+		if ( mpbook->atom[n]->has_field(MP_CHIRP_PROP) ) {
+			PyDict_SetItemString(atom, "chirp", Py_BuildValue("d", mpbook->atom[n]->get_field(MP_CHIRP_PROP, 0)));
+		}
+		/////////////////////////////////
+		// Multichannel properties:
 		// len
 		tmp = PyList_New(0);
 		for ( m=0 ; m<self->numChans ; m++ ) {
-			if ( mpbook->atom[n]->has_field(0) ) {
-				PyList_Append( tmp, Py_BuildValue("i", (int)mpbook->atom[n]->get_field(0,m)));
+			if ( mpbook->atom[n]->has_field(MP_LEN_PROP) ) {
+				PyList_Append( tmp, Py_BuildValue("i", (int)mpbook->atom[n]->get_field(MP_LEN_PROP, m)));
 			}
 		}
 		PyDict_SetItemString(atom, "len", tmp);
 		// pos
 		tmp = PyList_New(0);
 		for ( m=0 ; m<self->numChans ; m++ ) {
-			if ( mpbook->atom[n]->has_field(1) ) {
-				PyList_Append( tmp, Py_BuildValue("i", (int)mpbook->atom[n]->get_field(1,m)));
+			if ( mpbook->atom[n]->has_field(MP_POS_PROP) ) {
+				PyList_Append( tmp, Py_BuildValue("i", (int)mpbook->atom[n]->get_field(MP_POS_PROP, m)));
 			}
 		}
 		PyDict_SetItemString(atom, "pos", tmp);
-		// freq
-		tmp = PyList_New(0);
-		for ( m=0 ; m<self->numChans ; m++ ) {
-			if ( mpbook->atom[n]->has_field(2) ) {
-				PyList_Append( tmp, Py_BuildValue("d", mpbook->atom[n]->get_field(2,m)));
-			}
-		}
-		PyDict_SetItemString(atom, "freq", tmp);
 		// amp
 		tmp = PyList_New(0);
 		for ( m=0 ; m<self->numChans ; m++ ) {
-			if ( mpbook->atom[n]->has_field(3) ) {
-				PyList_Append( tmp, Py_BuildValue("d", mpbook->atom[n]->get_field(3,m)));
+			if ( mpbook->atom[n]->has_field(MP_AMP_PROP) ) {
+				PyList_Append( tmp, Py_BuildValue("d", mpbook->atom[n]->get_field(MP_AMP_PROP, m)));
 			}
 		}
 		PyDict_SetItemString(atom, "amp", tmp);
 		// phase
 		tmp = PyList_New(0);
 		for ( m=0 ; m<self->numChans ; m++ ) {
-			if ( mpbook->atom[n]->has_field(4) ) {
-				PyList_Append( tmp, Py_BuildValue("d", mpbook->atom[n]->get_field(4,m)));
+			if ( mpbook->atom[n]->has_field(MP_PHASE_PROP) ) {
+				PyList_Append( tmp, Py_BuildValue("d", mpbook->atom[n]->get_field(MP_PHASE_PROP, m)));
 			}
 		}
 		PyDict_SetItemString(atom, "phase", tmp);
-		// chirp
-		tmp = PyList_New(0);
-		for ( m=0 ; m<self->numChans ; m++ ) {
-			if ( mpbook->atom[n]->has_field(5) ) {
-				PyList_Append( tmp, Py_BuildValue("d", mpbook->atom[n]->get_field(5,m)));
-			}
-		}
-		PyDict_SetItemString(atom, "chirp", tmp);
 		// and finally, append our atom to the list
 		PyList_Append(self->atoms, atom);
 	}
-
 	return 0;
 }
 
@@ -119,7 +114,6 @@ PyObject *
 book_short_info(book* self)
 {
 	self->book->short_info();
-
 	return Py_BuildValue("i", 0);
 }
 
