@@ -97,13 +97,13 @@ mptk_decompose(PyObject *self, PyObject *args, PyObject *keywds)
 	PyObject *pysignal; // note: do not touch the referencecount for this
 	PyArrayObject *numpysignal;
 	const char *dictpath;
-	int samplerate;
+	float samplerate;
 	unsigned long int numiters=10;
 	const char *method="mp";
 	int getdecay=0;
 	const char *bookpath="";
 	static char *kwlist[] = {"signal", "dictpath", "samplerate", "numiters", "method", "getdecay", "bookpath", NULL};
-	if (!PyArg_ParseTupleAndKeywords(args, keywds, "Osi|ksis", kwlist,
+	if (!PyArg_ParseTupleAndKeywords(args, keywds, "Osf|ksis", kwlist,
 		&pysignal, &dictpath, &samplerate,
 		&numiters, &method, &getdecay, &bookpath))
 		return NULL;
@@ -120,7 +120,7 @@ mptk_decompose(PyObject *self, PyObject *args, PyObject *keywds)
 
 	// Here's where we call the heavy stuff
 	mptk_decompose_result result;
-	int intresult = mptk_decompose_body(numpysignal, dictpath, samplerate, numiters, method, getdecay==0, bookpath, result);
+	int intresult = mptk_decompose_body(numpysignal, dictpath, (int)samplerate, numiters, method, getdecay==0, bookpath, result);
 
 	//printf("mptk_decompose: about to return\n");
 	Py_DECREF(numpysignal); // destroy the contig array
