@@ -12,6 +12,10 @@ MP_Signal_c* mp_create_signal_from_numpyarray(const PyArrayObject *nparray){
 
 	if(nparray->nd == 2){
 		nchans = nparray->dimensions[1];
+		if(nspls==1 && nchans>1){ // For user convenience, we can accommodate single-channel as row or as column
+			nchans = 1;
+			nspls  = nparray->dimensions[1];
+		}
 	} else if(nparray->nd == 1) {
 		nchans = 1;
 	} else {
