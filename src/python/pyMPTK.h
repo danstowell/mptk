@@ -58,6 +58,8 @@ PyObject * mptk_decompose(PyObject *self, PyObject *args, PyObject *keywds);
 struct mptk_decompose_result { BookObject* thebook; PyArrayObject* residual; };
 int mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, const int samplerate, const unsigned long int numiters, const float snr, const char *method, const bool getdecay, const char* bookpath, mptk_decompose_result& result);
 
+PyObject * mptk_reconstruct(PyObject *self, PyObject *args);
+
 MPTK_LIB_EXPORT extern PyArrayObject* mp_create_numpyarray_from_signal(MP_Signal_c *signal);
 MPTK_LIB_EXPORT extern MP_Signal_c*   mp_create_signal_from_numpyarray(const PyArrayObject *nparray);
 

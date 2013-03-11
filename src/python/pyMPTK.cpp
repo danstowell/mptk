@@ -10,6 +10,7 @@
 static PyMethodDef module_methods[] = {
 	{"loadconfig", mptk_loadconfig, METH_VARARGS, "load MPTK config file from a specific path. do this BEFORE running decompose() etc."},
 	{"decompose" , (PyCFunction) mptk_decompose,  METH_VARARGS | METH_KEYWORDS, "decompose a signal into a 'book' and residual, using Matching Pursuit or related methods.\n(book, residual, decay) = mptk.decompose(sig, dictpath, samplerate, [ snr=0.5, numiters=10, method='mp', getdecay=False, ... ])"},
+	{"reconstruct" , (PyCFunction) mptk_reconstruct,  METH_VARARGS, "mptk.reconstruct(book, dictpath) -- turn a book back into a signal"},
 	{NULL}  /* Sentinel */
 };
 
@@ -128,6 +129,38 @@ mptk_decompose(PyObject *self, PyObject *args, PyObject *keywds)
 	return Py_BuildValue("OOO", result.thebook, result.residual, Py_None); // TODO: return decay as third item
 }
 
+// This method needs to stay in the same file as initmptk(), because of the use of import_array()
+PyObject *
+mptk_reconstruct(PyObject *self, PyObject *args)
+{
+	PyObject *pybook;
+	const char *dictpath;
+	if (!PyArg_ParseTuple(args, "Os", &pybook, &dictpath))
+		return NULL;
+	printf("mptk_reconstruct: parsed args\n");
+
+	MP_Book_c *book = ((BookObject*)pybook)->mpbook;
+	MP_Signal_c *sig;
+
+	printf("pybook stats: numChans %i, numSamples %i, sampleRate %i.\n", ((BookObject*)pybook)->numChans, ((BookObject*)pybook)->numSamples, ((BookObject*)pybook)->sampleRate);
+	printf("book stats: numChans %i, numSamples %i, sampleRate %i, numAtoms %i.\n", book->numChans, book->numSamples, book->sampleRate, book->numAtoms);
+
+	// initialise an empty signal
+	sig = MP_Signal_c::init( book->numChans, book->numSamples, book->sampleRate );
+	if ( sig == NULL ){
+		PyErr_SetString(PyExc_RuntimeError, "Can't make a new signal" );
+		return NULL;
+	}
+	// add all the atoms on:
+	if ( book->substract_add( NULL, sig, NULL ) == 0 )
+	{
+		PyErr_SetString(PyExc_RuntimeError, "No atoms were found in the book to rebuild the signal" );
+		return NULL;
+	}
+
+	PyArrayObject* sigarray = mp_create_numpyarray_from_signal(sig);
+	return Py_BuildValue("O", sigarray);
+}
 
 
 #ifndef PyMODINIT_FUNC	/* declarations for DLL import/export */
