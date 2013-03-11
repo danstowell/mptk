@@ -104,7 +104,7 @@ mptk_decompose(PyObject *self, PyObject *args, PyObject *keywds)
 	int getdecay=0;
 	const char *bookpath="";
 	static char *kwlist[] = {"signal", "dictpath", "samplerate", "numiters", "snr", "method", "getdecay", "bookpath", NULL};
-	if (!PyArg_ParseTupleAndKeywords(args, keywds, "Osf|ksis", kwlist,
+	if (!PyArg_ParseTupleAndKeywords(args, keywds, "Osf|kfsis", kwlist,
 		&pysignal, &dictpath, &samplerate,
 		&numiters, &snr, &method, &getdecay, &bookpath))
 		return NULL;
