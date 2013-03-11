@@ -5,13 +5,17 @@ extern PyTypeObject bookType;
 
 MP_Signal_c* mp_create_signal_from_numpyarray(const PyArrayObject *nparray){
 	unsigned long int nspls = nparray->dimensions[0];
-	unsigned      int nchans= nparray->dimensions[1];
+	unsigned      int nchans;
 	float *signal_data = (float *)nparray->data;
 	const char *func = "mp_create_signal_from_numpyarray()";
 	printf("%s - numpy array has %d channels, %d samples\n", func, (int)nchans, (int)nspls);
 
-	if(2 != nparray->nd) {
-		mp_error_msg(func,"input signal should be a numSamples x numChans matrix");
+	if(nparray->nd == 2){
+		nchans = nparray->dimensions[1];
+	} else if(nparray->nd == 1) {
+		nchans = 1;
+	} else {
+		mp_error_msg(func,"input signal should be a numpy array (1D or 2D), of shape (numSamples, numChans)");
 		return(NULL);
 	}
 
@@ -43,8 +47,6 @@ mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, cons
 
 	////////////////////////////////////////////////////////////
 	// get signal in mem in appropriate format
-	// Q: can we do it in-place? to do this, we'd need to check if it was a numpy array, with the right float format, and the right matrix-ordering, error if not.
-	// TODO: check with MPTK crew, that in-place operation will not mangle the signal (it is not const)
 	MP_Signal_c *signal = mp_create_signal_from_numpyarray(numpysignal);
 	if(NULL==signal) {
 		printf("Failed to convert a signal from python to MPTK.\n");

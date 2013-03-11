@@ -111,7 +111,7 @@ mptk_decompose(PyObject *self, PyObject *args, PyObject *keywds)
 
 	// Now to get a usable numpy array from the opaque obj
 	// TODO: currently can only handle arrays with dtype=float32. Is there a way to automatically convert if needed?
-	numpysignal = (PyArrayObject*) PyArray_ContiguousFromObject(pysignal, PyArray_FLOAT, 2, 2); // 1D or 2D
+	numpysignal = (PyArrayObject*) PyArray_ContiguousFromObject(pysignal, PyArray_FLOAT, 1, 2); // 1D or 2D
 	if(numpysignal==NULL){
 		printf("mptk_decompose failed to get numpy array object\n"); // todo: proper error
 		return NULL;
