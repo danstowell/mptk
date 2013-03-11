@@ -9,7 +9,7 @@
 
 static PyMethodDef module_methods[] = {
 	{"loadconfig", mptk_loadconfig, METH_VARARGS, "load MPTK config file from a specific path. do this BEFORE running decompose() etc."},
-	{"decompose" , (PyCFunction) mptk_decompose,  METH_VARARGS | METH_KEYWORDS, "decompose a signal into a 'book' and residual, using Matching Pursuit or related methods."},
+	{"decompose" , (PyCFunction) mptk_decompose,  METH_VARARGS | METH_KEYWORDS, "decompose a signal into a 'book' and residual, using Matching Pursuit or related methods.\n(book, residual, decay) = mptk.decompose(sig, dictpath, samplerate, [ snr=0.5, numiters=10, method='mp', getdecay=False, ... ])"},
 	{NULL}  /* Sentinel */
 };
 
@@ -93,19 +93,20 @@ PyArrayObject* mp_create_numpyarray_from_signal(MP_Signal_c *signal){
 PyObject *
 mptk_decompose(PyObject *self, PyObject *args, PyObject *keywds)
 {
-	// book, residual, decay = mptk.decompose(sig, dictpath, samplerate, [ numiters=10, method='mp', getdecay=False ])
+	// book, residual, decay = mptk.decompose(sig, dictpath, samplerate, [ snr=0.5, numiters=10, ... ])
 	PyObject *pysignal; // note: do not touch the referencecount for this
 	PyArrayObject *numpysignal;
 	const char *dictpath;
 	float samplerate;
-	unsigned long int numiters=10;
+	unsigned long int numiters=0; // 0 is flag to use SNR not numiters
+	float snr=0.5f;
 	const char *method="mp";
 	int getdecay=0;
 	const char *bookpath="";
-	static char *kwlist[] = {"signal", "dictpath", "samplerate", "numiters", "method", "getdecay", "bookpath", NULL};
+	static char *kwlist[] = {"signal", "dictpath", "samplerate", "numiters", "snr", "method", "getdecay", "bookpath", NULL};
 	if (!PyArg_ParseTupleAndKeywords(args, keywds, "Osf|ksis", kwlist,
 		&pysignal, &dictpath, &samplerate,
-		&numiters, &method, &getdecay, &bookpath))
+		&numiters, &snr, &method, &getdecay, &bookpath))
 		return NULL;
 	//printf("mptk_decompose: parsed args\n");
 
@@ -120,7 +121,7 @@ mptk_decompose(PyObject *self, PyObject *args, PyObject *keywds)
 
 	// Here's where we call the heavy stuff
 	mptk_decompose_result result;
-	int intresult = mptk_decompose_body(numpysignal, dictpath, (int)samplerate, numiters, method, getdecay==0, bookpath, result);
+	int intresult = mptk_decompose_body(numpysignal, dictpath, (int)samplerate, numiters, snr, method, getdecay==0, bookpath, result);
 
 	//printf("mptk_decompose: about to return\n");
 	Py_DECREF(numpysignal); // destroy the contig array
