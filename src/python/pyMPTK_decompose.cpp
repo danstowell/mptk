@@ -122,14 +122,17 @@ mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, cons
 	// create python book object, which will be returned
 	BookObject* thebook = (BookObject*)PyObject_CallObject((PyObject *) &bookType, NULL);
 	book_append_atoms_from_mpbook(thebook, mpbook);
+	Py_INCREF(thebook); // TODO this may rescue us from losing data, or it may be a memory leak
 
 	result.thebook = thebook;
 	result.residual = mp_create_numpyarray_from_signal(signal); // residual is in here (i.e. the "signal" is updated in-place)
 
-	delete signal;
-	delete dict;
-	delete mpbook;
-	delete mpdCore;
+	printf("book stats: numChans %i, numSamples %il, sampleRate %il, numAtoms %i.\n", mpbook->numChans, mpbook->numSamples, mpbook->sampleRate, mpbook->numAtoms);
+
+//TMPDEAC	delete signal;
+//TMPDEAC	delete dict;
+	//NO! delete mpbook;
+//TMPDEAC	delete mpdCore;
 
 	return 0;
 }
