@@ -27,7 +27,7 @@
 
 // Method to create an atom in mptk data structure, from a python specification in memory.
 // Based on the matlab wrapper: MP_Atom_c *GetMP_Atom(const mxArray *mxBook,MP_Chan_t numChans,unsigned long int atomIdx)
-MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans, unsigned long int atomIdx) {
+MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans) {
 	const char *func = "mpatom_from_pyatom";
 	PyObject* pyatomobj = (PyObject*)pyatom;
 	unsigned long int c; //MP_Chan_t c;
@@ -58,7 +58,7 @@ MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans, unsigned
 		delete newAtom;
 		return( NULL );
 	}
-	mp_debug_msg(MP_DEBUG_SPARSE,func," -- atom index %ld [%s]\n",atomIdx, typestr);
+	mp_debug_msg(MP_DEBUG_SPARSE,func," -- atom [%s]\n", typestr);
 
 	// retrieve pointers to arrays of parameters that are common to every atom type (pos, len, amp)
 	PYATOMOBJ_GETITEM("pos", listobj_pos, PyList)
@@ -280,5 +280,66 @@ MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans, unsigned
 		mp_error_msg(func,"Atom type [%s] unknown, consider adding its information in pyMPTK_atom.cpp\n", typestr);
 		return (NULL);
 	} 
+}
+
+
+PyObject*  pyatom_from_mpatom(MP_Atom_c* mpatom, MP_Chan_t numChans){
+	int m;
+	PyObject *tmp;
+	// Create a dict representing one atom, containing all its properties
+	PyObject* atom = PyDict_New();
+	/////////////////////////////////
+	// Mono properties:
+	PyDict_SetItemString(atom, "type", Py_BuildValue("s", mpatom->type_name()));
+	// freq
+	if ( mpatom->has_field(MP_FREQ_PROP) ) {
+		PyDict_SetItemString(atom, "freq", Py_BuildValue("d", mpatom->get_field(MP_FREQ_PROP, 0)));
+	}
+	// chirp
+	if ( mpatom->has_field(MP_CHIRP_PROP) ) {
+		PyDict_SetItemString(atom, "chirp", Py_BuildValue("d", mpatom->get_field(MP_CHIRP_PROP, 0)));
+	}
+	// wintype
+	if ( mpatom->has_field(MP_WINDOW_TYPE_PROP) ) {
+		const char* winname = window_name(mpatom->get_field(MP_WINDOW_TYPE_PROP, 0));
+		//printf("got winname %s\n", winname);
+		PyDict_SetItemString(atom, "wintype", Py_BuildValue("s", winname));
+	}
+	/////////////////////////////////
+	// Multichannel properties:
+	// len
+	tmp = PyList_New(0);
+	for ( m=0 ; m< numChans ; ++m ) {
+		if ( mpatom->has_field(MP_LEN_PROP) ) {
+			PyList_Append( tmp, Py_BuildValue("i", (int)mpatom->get_field(MP_LEN_PROP, m)));
+		}
+	}
+	PyDict_SetItemString(atom, "len", tmp);
+	// pos
+	tmp = PyList_New(0);
+	for ( m=0 ; m< numChans ; ++m ) {
+		if ( mpatom->has_field(MP_POS_PROP) ) {
+			PyList_Append( tmp, Py_BuildValue("i", (int)mpatom->get_field(MP_POS_PROP, m)));
+		}
+	}
+	PyDict_SetItemString(atom, "pos", tmp);
+	// amp
+	tmp = PyList_New(0);
+	for ( m=0 ; m< numChans ; ++m ) {
+		if ( mpatom->has_field(MP_AMP_PROP) ) {
+			PyList_Append( tmp, Py_BuildValue("d", mpatom->get_field(MP_AMP_PROP, m)));
+		}
+	}
+	PyDict_SetItemString(atom, "amp", tmp);
+	// phase
+	tmp = PyList_New(0);
+	for ( m=0 ; m< numChans ; ++m ) {
+		if ( mpatom->has_field(MP_PHASE_PROP) ) {
+			PyList_Append( tmp, Py_BuildValue("d", mpatom->get_field(MP_PHASE_PROP, m)));
+		}
+	}
+	PyDict_SetItemString(atom, "phase", tmp);
+	// and finally
+	return atom;
 }
 
