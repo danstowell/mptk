@@ -11,46 +11,32 @@
 #include "../plugin/contrib/lam/mdct_atom_plugin.h"
 #include "../plugin/contrib/lam/mdst_atom_plugin.h"
 
+// macro used in mpatom_from_pyatom()
+#define PYATOMOBJ_GETITEM(keystr, objvarname, checktype) \
+		keyobj = PyString_FromString(keystr); \
+		PyObject* objvarname = PyObject_GetItem(pyatomobj, keyobj); \
+		Py_DECREF(keyobj); \
+		if(objvarname==NULL){ \
+			printf("'%s' gotobj is null\n", keystr); \
+			return NULL; \
+		} \
+		if(!checktype##_Check(objvarname)){ \
+			printf("'%s' gotobj is not of correct type\n", keystr); \
+			return NULL; \
+		}
+
 // Method to create an atom in mptk data structure, from a python specification in memory.
 // Based on the matlab wrapper: MP_Atom_c *GetMP_Atom(const mxArray *mxBook,MP_Chan_t numChans,unsigned long int atomIdx)
 MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans, unsigned long int atomIdx) {
 	const char *func = "mpatom_from_pyatom";
 	PyObject* pyatomobj = (PyObject*)pyatom;
 	unsigned long int c; //MP_Chan_t c;
-/*	
-	// Add index info to book structure
-	mxArray * mxIdx;
-	unsigned int indexSize = 4+numChans;
 
-	mxIdx = mxGetField(mxBook, 0, "index"); //! Matrix of size 4*nAtoms
-	unsigned int t =	(unsigned int) *( mxGetPr(mxIdx) + atomIdx*indexSize + 1 ); //! typeMap index
-	unsigned long int n =	(unsigned long int) *( mxGetPr(mxIdx) + atomIdx*indexSize + 2 ); //! atom number for given type
-	
-	// Get Atom type structure
-	mxArray *mxAtom, *mxType, *mxParams;
-	mxAtom = mxGetField(mxBook,0,"atom");			//! Structure with field 'type' 'params'
-	mxParams = mxGetField(mxAtom,t-1,"params"); //! Structure with fields different for each type
-	mxType = mxGetField(mxAtom,t-1,"type");		 //! Get string type
-	string aType(mxArrayToString(mxType));
-
-*/
-
-	PyObject* gotobj;
-	PyObject* keyobj;
+	PyObject* keyobj; // used in PYATOMOBJ_GETITEM
 	char* keystr;
 
-	keystr = "type";
-	keyobj = PyString_FromString(keystr);
-	gotobj = PyObject_GetItem(pyatomobj, keyobj);
-	if(gotobj==NULL){
-		printf("'type' gotobj is null\n");
-		return NULL;
-	}
-	if(!PyString_Check(gotobj)){
-		printf("'type' gotobj is not a string\n");
-		return NULL;
-	}
-	const char* typestr = PyString_AsString(gotobj);
+	PYATOMOBJ_GETITEM("type", typeobj, PyString)
+	const char* typestr = PyString_AsString(typeobj);
 
 
 	// Get Atom creator method 
@@ -74,43 +60,10 @@ MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans, unsigned
 	}
 	mp_debug_msg(MP_DEBUG_SPARSE,func," -- atom index %ld [%s]\n",atomIdx, typestr);
 
-
 	// retrieve pointers to arrays of parameters that are common to every atom type (pos, len, amp)
-	keystr = "pos";
-	keyobj = PyString_FromString(keystr);
-	PyObject* listobj_pos = PyObject_GetItem(pyatomobj, keyobj);
-	if(listobj_pos==NULL){
-		printf("'pos' gotobj is null\n");
-		return NULL;
-	}
-	if(!PyList_Check(listobj_pos)){
-		printf("'pos' gotobj is not a list\n");
-		return NULL;
-	}
-	//
-	keystr = "len";
-	keyobj = PyString_FromString(keystr);
-	PyObject* listobj_len = PyObject_GetItem(pyatomobj, keyobj);
-	if(listobj_len==NULL){
-		printf("'len' gotobj is null\n");
-		return NULL;
-	}
-	if(!PyList_Check(listobj_len)){
-		printf("'len' gotobj is not a list\n");
-		return NULL;
-	}
-	//
-	keystr = "amp";
-	keyobj = PyString_FromString(keystr);
-	PyObject* listobj_amp = PyObject_GetItem(pyatomobj, keyobj);
-	if(listobj_amp==NULL){
-		printf("'amp' gotobj is null\n");
-		return NULL;
-	}
-	if(!PyList_Check(listobj_amp)){
-		printf("'amp' gotobj is not a list\n");
-		return NULL;
-	}
+	PYATOMOBJ_GETITEM("pos", listobj_pos, PyList)
+	PYATOMOBJ_GETITEM("len", listobj_len, PyList)
+	PYATOMOBJ_GETITEM("amp", listobj_amp, PyList)
 
 	// Fill the main fields
 	for (c=0; c<numChans; ++c) { // loop on channels
@@ -135,54 +88,10 @@ MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans, unsigned
 			return( NULL );
 		}
 
-		keystr = "chirp";
-		keyobj = PyString_FromString(keystr);
-		PyObject* chirpobj = PyObject_GetItem(pyatomobj, keyobj);
-		if(chirpobj==NULL){
-			printf("'chirp' gotobj is null\n");
-			return NULL;
-		}
-		if(!PyFloat_Check(chirpobj)){
-			printf("'chirp' gotobj is not a float\n");
-			return NULL;
-		}
-		//
-		keystr = "freq";
-		keyobj = PyString_FromString(keystr);
-		PyObject* freqobj = PyObject_GetItem(pyatomobj, keyobj);
-		if(freqobj==NULL){
-			printf("'freq' gotobj is null\n");
-			return NULL;
-		}
-		if(!PyFloat_Check(freqobj)){
-			printf("'freq' gotobj is not a float\n");
-			return NULL;
-		}
-		//
-		keystr = "phase";
-		keyobj = PyString_FromString(keystr);
-		PyObject* phaseobj = PyObject_GetItem(pyatomobj, keyobj);
-		if(phaseobj==NULL){
-			printf("'phase' gotobj is null\n");
-			return NULL;
-		}
-		if(!PyList_Check(phaseobj)){
-			printf("'phase' gotobj is not a list\n");
-			return NULL;
-		}
-		//
-		keystr = "wintype";
-		keyobj = PyString_FromString(keystr);
-		PyObject* wintypeobj = PyObject_GetItem(pyatomobj, keyobj);
-		if(wintypeobj==NULL){
-			printf("'wintype' gotobj is null\n");
-			return NULL;
-		}
-		if(!PyString_Check(wintypeobj)){
-			printf("'wintype' gotobj is not a string\n");
-			return NULL;
-		}
-		//
+		PYATOMOBJ_GETITEM("chirp",   chirpobj,   PyFloat)
+		PYATOMOBJ_GETITEM("freq",    freqobj,    PyFloat)
+		PYATOMOBJ_GETITEM("phase",   phaseobj,   PyList )
+		PYATOMOBJ_GETITEM("wintype", wintypeobj, PyString)
 
 		const char* wintypestr = PyString_AsString(wintypeobj);
 		gaborAtom->windowType = window_type(wintypestr);
@@ -197,38 +106,39 @@ MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans, unsigned
 		if(strcmp(typestr, "gabor")==0) {
 			return (newAtom);
 		}
-/* TODO
 		else if (strcmp(typestr, "harmonic")==0)	{
 			MP_Harmonic_Atom_Plugin_c* harmonicAtom =	(MP_Harmonic_Atom_Plugin_c*)newAtom;
 
-					mxArray *mxnumPartial;
-			mxnumPartial = mxGetField(mxParams,0,"numPartials");
-			unsigned int numPartials = (unsigned int) *(mxGetPr(mxnumPartial) + (n-1));
+
+			PYATOMOBJ_GETITEM("numPartials",   numpartialsobj,   PyInt)
+
+			unsigned int numPartials = (unsigned int) PyInt_AsLong(numpartialsobj);
 			unsigned int p;
 			if ( harmonicAtom->alloc_harmonic_atom_param( numChans, numPartials ) ) {
 				mp_error_msg(func,"Failed to allocate some vectors in the atom %s. Returning a NULL atom.\n", typestr);
 				delete newAtom;
 				return( NULL );
 			}
+
+
 			// set atoms params 
-			mxArray *mxharmo, *mxpartialamp, *mxpartialphase;			
-			mxharmo = mxGetField(mxParams,0,"harmonicity");
-			mxpartialamp = mxGetField(mxParams,0,"partialAmp");
-			mxpartialphase = mxGetField(mxParams,0,"partialPhase");
-			
+			PYATOMOBJ_GETITEM("harmonicity",  harmonicityobj,  PyList)
+			PYATOMOBJ_GETITEM("partialAmp",   partialampobj,   PyList)
+			PYATOMOBJ_GETITEM("partialPhase", partialphaseobj, PyList)
+
 			harmonicAtom->numPartials = numPartials;
+			
 			for (p=0;p<numPartials;p++) { // loop on partials
-				harmonicAtom->harmonicity[p] =	(MP_Real_t)	*(mxGetPr(mxharmo) + p*nA +	(n-1));		
+				harmonicAtom->harmonicity[p] =	(MP_Real_t) PyFloat_AsDouble(PyList_GetItem(harmonicityobj, p));
 			}
 			for (c=0;c<numChans;c++) { // loop on channels
 				for (p=0;p<numPartials;p++) { // loop on partials
-					harmonicAtom->partialAmp[c][p] = (MP_Real_t)	*(mxGetPr(mxpartialamp) + c*(nA*numPartials) + p*nA + (n-1)); // When reading was c*(nAtom*nP) + h*nAtom + curIdx
-					harmonicAtom->partialPhase[c][p] = (MP_Real_t)	*(mxGetPr(mxpartialphase) + c*(nA*numPartials) + p*nA + (n-1));
+					harmonicAtom->partialAmp[c][p] = (MP_Real_t)   PyFloat_AsDouble(PyList_GetItem(PyList_GetItem(partialampobj, c), p));
+					harmonicAtom->partialPhase[c][p] = (MP_Real_t) PyFloat_AsDouble(PyList_GetItem(PyList_GetItem(partialphaseobj, c), p));
 				}
 			}
 			return (newAtom);
 		}
-*/
 		else {
 			mp_error_msg(func,"This code should never be reached!\n");
 			delete newAtom;
