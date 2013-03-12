@@ -44,8 +44,7 @@ int
 pybook_from_mpbook(BookObject* pybook, MP_Book_c *mpbook)
 {
 	int numAtoms = mpbook->numAtoms;
-	int n,m;
-	PyObject *tmp;
+	int n;
 	if(PyList_Size(pybook->atoms) != 0){
 		printf("Attempted to load mpbook data into a pybook which is not empty.\n");
 		return 4;
@@ -66,61 +65,7 @@ pybook_from_mpbook(BookObject* pybook, MP_Book_c *mpbook)
 		return 3;
 	}
 	for ( n=0 ; n<numAtoms ; ++n ) {
-
-		// Create a dict representing one atom, containing all its properties
-		PyObject* atom = PyDict_New();
-		/////////////////////////////////
-		// Mono properties:
-		PyDict_SetItemString(atom, "type", Py_BuildValue("s", mpbook->atom[n]->type_name()));
-		// freq
-		if ( mpbook->atom[n]->has_field(MP_FREQ_PROP) ) {
-			PyDict_SetItemString(atom, "freq", Py_BuildValue("d", mpbook->atom[n]->get_field(MP_FREQ_PROP, 0)));
-		}
-		// chirp
-		if ( mpbook->atom[n]->has_field(MP_CHIRP_PROP) ) {
-			PyDict_SetItemString(atom, "chirp", Py_BuildValue("d", mpbook->atom[n]->get_field(MP_CHIRP_PROP, 0)));
-		}
-		// wintype
-		if ( mpbook->atom[n]->has_field(MP_WINDOW_TYPE_PROP) ) {
-			const char* winname = window_name(mpbook->atom[n]->get_field(MP_WINDOW_TYPE_PROP, 0));
-			//printf("got winname %s\n", winname);
-			PyDict_SetItemString(atom, "wintype", Py_BuildValue("s", winname));
-		}
-		/////////////////////////////////
-		// Multichannel properties:
-		// len
-		tmp = PyList_New(0);
-		for ( m=0 ; m<pybook->numChans ; m++ ) {
-			if ( mpbook->atom[n]->has_field(MP_LEN_PROP) ) {
-				PyList_Append( tmp, Py_BuildValue("i", (int)mpbook->atom[n]->get_field(MP_LEN_PROP, m)));
-			}
-		}
-		PyDict_SetItemString(atom, "len", tmp);
-		// pos
-		tmp = PyList_New(0);
-		for ( m=0 ; m<pybook->numChans ; m++ ) {
-			if ( mpbook->atom[n]->has_field(MP_POS_PROP) ) {
-				PyList_Append( tmp, Py_BuildValue("i", (int)mpbook->atom[n]->get_field(MP_POS_PROP, m)));
-			}
-		}
-		PyDict_SetItemString(atom, "pos", tmp);
-		// amp
-		tmp = PyList_New(0);
-		for ( m=0 ; m<pybook->numChans ; m++ ) {
-			if ( mpbook->atom[n]->has_field(MP_AMP_PROP) ) {
-				PyList_Append( tmp, Py_BuildValue("d", mpbook->atom[n]->get_field(MP_AMP_PROP, m)));
-			}
-		}
-		PyDict_SetItemString(atom, "amp", tmp);
-		// phase
-		tmp = PyList_New(0);
-		for ( m=0 ; m<pybook->numChans ; m++ ) {
-			if ( mpbook->atom[n]->has_field(MP_PHASE_PROP) ) {
-				PyList_Append( tmp, Py_BuildValue("d", mpbook->atom[n]->get_field(MP_PHASE_PROP, m)));
-			}
-		}
-		PyDict_SetItemString(atom, "phase", tmp);
-		// and finally, append our atom to the list
+		PyObject* atom = pyatom_from_mpatom(mpbook->atom[n], pybook->numChans);
 		PyList_Append(pybook->atoms, atom);
 	}
 	return 0;
@@ -168,7 +113,7 @@ mpbook_from_pybook(MP_Book_c *mpbook, BookObject* pybook)
 		}
 		PyDictObject* pyatom = (PyDictObject*)obj;
 
-		MP_Atom_c* mpatom = mpatom_from_pyatom(pyatom, mpbook->numChans, i);
+		MP_Atom_c* mpatom = mpatom_from_pyatom(pyatom, mpbook->numChans);
 
 		if ( NULL==mpatom ) {
 			delete mpbook;
