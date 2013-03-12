@@ -158,13 +158,14 @@ mptk_reconstruct(PyObject *self, PyObject *args)
 	    delete dict;
 	    return NULL;
 	}
+	printf("mpbook stats before mpbook_from_pybook: numChans %i, numSamples %i, sampleRate %i, numAtoms %i.\n", mpbook->numChans, mpbook->numSamples, mpbook->sampleRate, mpbook->numAtoms);
 	int res = mpbook_from_pybook(mpbook, pybook, dict);
 	if ( res != 0 )  {
 	    printf("Failed to complete mpbook object from pybook.\n" );
 	    delete dict;
 	    return NULL;
 	}
-	printf("book stats: numChans %i, numSamples %i, sampleRate %i, numAtoms %i.\n", mpbook->numChans, mpbook->numSamples, mpbook->sampleRate, mpbook->numAtoms);
+	printf("mpbook stats after mpbook_from_pybook: numChans %i, numSamples %i, sampleRate %i, numAtoms %i.\n", mpbook->numChans, mpbook->numSamples, mpbook->sampleRate, mpbook->numAtoms);
 
 	// initialise an empty signal
 	sig = MP_Signal_c::init( mpbook->numChans, mpbook->numSamples, mpbook->sampleRate );
