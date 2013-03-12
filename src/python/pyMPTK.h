@@ -59,9 +59,13 @@ int mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, 
 
 PyObject * mptk_reconstruct(PyObject *self, PyObject *args);
 
+////////////////////////////////////////////////////
+// Conversions between MPTK and Python datatypes
+
 MPTK_LIB_EXPORT extern PyArrayObject* mp_create_numpyarray_from_signal(MP_Signal_c *signal);
 MPTK_LIB_EXPORT extern MP_Signal_c*   mp_create_signal_from_numpyarray(const PyArrayObject *nparray);
 
+MPTK_LIB_EXPORT extern int pybook_from_mpbook(BookObject* pybook, MP_Book_c *mpbook);
 MPTK_LIB_EXPORT extern int mpbook_from_pybook(MP_Book_c *mpbook, BookObject* pybook);
 
 MPTK_LIB_EXPORT extern MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans);
