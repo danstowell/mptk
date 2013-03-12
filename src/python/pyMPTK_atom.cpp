@@ -117,7 +117,7 @@ MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans, unsigned
 		newAtom->support[c].pos = (unsigned long int) PyInt_AsLong(PyList_GetItem(listobj_pos, c));
 		newAtom->support[c].len = (unsigned long int) PyInt_AsLong(PyList_GetItem(listobj_len, c));
 		newAtom->totalChanLen += newAtom->support[c].len;
-	 	newAtom->amp[c] = (MP_Real_t)	PyFloat_AsDouble(PyList_GetItem(listobj_len, c));
+		newAtom->amp[c]         = (MP_Real_t)     PyFloat_AsDouble(PyList_GetItem(listobj_amp, c));
 	}
 	
 	// and fill it with the params field
