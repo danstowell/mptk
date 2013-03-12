@@ -1,68 +1,68 @@
 #include "pyMPTK.h"
 
 void
-book_dealloc(BookObject* self)
+book_dealloc(BookObject* pybook)
 {
-	self->ob_type->tp_free((PyObject*)self);
+	pybook->ob_type->tp_free((PyObject*)pybook);
 }
 
 PyObject *
 book_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
 	MPTK_Env_c::get_env()->load_environment_if_needed("");
-	BookObject *self;
+	BookObject *pybook;
 
-	self = (BookObject *)type->tp_alloc(type, 0);
-	self->mpbook = MP_Book_c::create();
-	// NB the values below, book_append_atoms_from_mpbook() will overwrite them iff 0
-	self->numChans = 0;
-	self->numSamples = 0;
-	self->sampleRate = 0;
-	self->atoms = PyList_New(0);
+	pybook = (BookObject *)type->tp_alloc(type, 0);
+	// NB the values below, pybook_from_mpbook() will overwrite them iff 0 so we should leave them here as 0
+	pybook->mpbook = MP_Book_c::create(0, 0, 0);
+	pybook->atoms = PyList_New(0);
 
-	return (PyObject *)self;
+	return (PyObject *)pybook;
 }
 
 int
-book_init(BookObject *self, PyObject *args, PyObject *kwds)
+book_init(BookObject *pybook, PyObject *args, PyObject *kwds)
 {
 	return 0;
 }
 
 PyObject *
-book_read(BookObject* self, PyObject *args)
+book_read(BookObject* pybook, PyObject *args)
 {
 	char *filename;
 
 	if (!PyArg_ParseTuple(args, "s", &filename))
 		return NULL;
 
-	self->mpbook->load( filename );
+	pybook->mpbook->load( filename );
 
-	int result = book_append_atoms_from_mpbook(self, self->mpbook);
+	int result = pybook_from_mpbook(pybook, pybook->mpbook);
 	return Py_BuildValue("i", result);
 }
 
-// This is intended only to be used by the internal functions which read from file or from memory. It doesn't ensure the self->mpbook and mpbook are in sync.
 int
-book_append_atoms_from_mpbook(BookObject* self, MP_Book_c *mpbook)
+pybook_from_mpbook(BookObject* pybook, MP_Book_c *mpbook)
 {
 	int numAtoms = mpbook->numAtoms;
 	int n,m;
 	PyObject *tmp;
-	if(self->numChans==0){
-		self->numChans = mpbook->numChans;
-	}else if(self->numChans != mpbook->numChans ){
+	if(PyList_Size(pybook->atoms) != 0){
+		printf("Attempted to load mpbook data into a pybook which is not empty.\n");
+		return 4;
+	}
+	if(pybook->numChans==0){
+		pybook->numChans = mpbook->numChans;
+	}else if(pybook->numChans != mpbook->numChans ){
 		return 1;
 	}
-	if(self->numSamples==0){
-		self->numSamples = mpbook->numSamples;
-	}else if(self->numSamples != mpbook->numSamples ){
+	if(pybook->numSamples==0){
+		pybook->numSamples = mpbook->numSamples;
+	}else if(pybook->numSamples != mpbook->numSamples ){
 		return 2;
 	}
-	if(self->sampleRate==0){
-		self->sampleRate = mpbook->sampleRate;
-	}else if(self->sampleRate != mpbook->sampleRate ){
+	if(pybook->sampleRate==0){
+		pybook->sampleRate = mpbook->sampleRate;
+	}else if(pybook->sampleRate != mpbook->sampleRate ){
 		return 3;
 	}
 	for ( n=0 ; n<numAtoms ; ++n ) {
@@ -84,7 +84,7 @@ book_append_atoms_from_mpbook(BookObject* self, MP_Book_c *mpbook)
 		// Multichannel properties:
 		// len
 		tmp = PyList_New(0);
-		for ( m=0 ; m<self->numChans ; m++ ) {
+		for ( m=0 ; m<pybook->numChans ; m++ ) {
 			if ( mpbook->atom[n]->has_field(MP_LEN_PROP) ) {
 				PyList_Append( tmp, Py_BuildValue("i", (int)mpbook->atom[n]->get_field(MP_LEN_PROP, m)));
 			}
@@ -92,7 +92,7 @@ book_append_atoms_from_mpbook(BookObject* self, MP_Book_c *mpbook)
 		PyDict_SetItemString(atom, "len", tmp);
 		// pos
 		tmp = PyList_New(0);
-		for ( m=0 ; m<self->numChans ; m++ ) {
+		for ( m=0 ; m<pybook->numChans ; m++ ) {
 			if ( mpbook->atom[n]->has_field(MP_POS_PROP) ) {
 				PyList_Append( tmp, Py_BuildValue("i", (int)mpbook->atom[n]->get_field(MP_POS_PROP, m)));
 			}
@@ -100,7 +100,7 @@ book_append_atoms_from_mpbook(BookObject* self, MP_Book_c *mpbook)
 		PyDict_SetItemString(atom, "pos", tmp);
 		// amp
 		tmp = PyList_New(0);
-		for ( m=0 ; m<self->numChans ; m++ ) {
+		for ( m=0 ; m<pybook->numChans ; m++ ) {
 			if ( mpbook->atom[n]->has_field(MP_AMP_PROP) ) {
 				PyList_Append( tmp, Py_BuildValue("d", mpbook->atom[n]->get_field(MP_AMP_PROP, m)));
 			}
@@ -108,22 +108,85 @@ book_append_atoms_from_mpbook(BookObject* self, MP_Book_c *mpbook)
 		PyDict_SetItemString(atom, "amp", tmp);
 		// phase
 		tmp = PyList_New(0);
-		for ( m=0 ; m<self->numChans ; m++ ) {
+		for ( m=0 ; m<pybook->numChans ; m++ ) {
 			if ( mpbook->atom[n]->has_field(MP_PHASE_PROP) ) {
 				PyList_Append( tmp, Py_BuildValue("d", mpbook->atom[n]->get_field(MP_PHASE_PROP, m)));
 			}
 		}
 		PyDict_SetItemString(atom, "phase", tmp);
 		// and finally, append our atom to the list
-		PyList_Append(self->atoms, atom);
+		PyList_Append(pybook->atoms, atom);
 	}
 	return 0;
 }
 
-PyObject *
-book_short_info(BookObject* self)
+/* Writes a pyatom's data to an XML fragment in-memory */
+void pyatom_innerxml(PyDictObject* atom, char* str, size_t maxlen){
+	size_t writepos=0;
+	
+}
+
+int
+mpbook_from_pybook(MP_Book_c *mpbook, BookObject* pybook, MP_Dict_c* dict)
 {
-	self->mpbook->short_info();
+	// Given an mpbook already "create"d, this fills it in
+
+	unsigned long int pynatoms = PyList_Size(pybook->atoms);
+	if(pynatoms == 0){
+		printf("Attempted to load mpbook data from a pybook which is empty.\n");
+		return 4;
+	}
+	if(mpbook->numAtoms != 0){
+		// TODO LATER: could use mpbook->reset()
+		printf("Attempted to load data from a pybook into an mpbook which is not empty.\n");
+		return 3;
+	}
+	if(mpbook->maxNumAtoms > pynatoms){
+		printf("Attempted to load %i atoms from a pybook into an mpbook which can only hold %i atoms.\n", pynatoms, mpbook->maxNumAtoms);
+		return 2;
+	}
+
+
+	mpbook->numChans   = pybook->numChans;
+	mpbook->numSamples = pybook->numSamples;
+	mpbook->sampleRate = pybook->sampleRate;
+
+	for(unsigned long int i=0; i < pynatoms; ++i){
+		// read atom from pybook, create one in mpbook
+		PyObject* obj = PyList_GetItem(pybook->atoms, (Py_ssize_t)i);
+		if(!PyDict_Check(obj)){
+			printf("Error -- iterating atoms in book, found entry %i is not a dict\n", i);
+			return 1;
+		}
+		PyDictObject* pyatom = (PyDictObject*)obj;
+
+/*
+		// Scan the hash map to get the create function of the atom
+		MP_Atom_c* (*createAtom)( FILE *fid, MP_Dict_c *dict, const char mode ) = MP_Atom_Factory_c::get_atom_factory()->get_atom_creator( str );
+		// Scan the hash map to get the create function of the atom
+		if ( NULL != createAtom ) 
+			// Create the the atom
+			newAtom = (*createAtom)(fid,dict,mode);
+		else 
+			mp_error_msg( func, "Cannot read atoms of type '%s'\n",str);
+	  
+		if ( NULL == newAtom )  
+			mp_error_msg( func, "Failed to create an atom of type[%s].\n", str);
+*/
+
+		
+	}
+
+	mpbook->recheck_num_samples();
+	mpbook->recheck_num_channels();
+
+	return 0;
+}
+
+PyObject *
+book_short_info(BookObject* pybook)
+{
+	pybook->mpbook->short_info();
 	return Py_BuildValue("i", 0);
 }
 

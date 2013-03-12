@@ -151,10 +151,21 @@ mptk_reconstruct(PyObject *self, PyObject *args)
 		PyErr_SetString(PyExc_RuntimeError, "Can't make a new signal" );
 		return NULL;
 	}
+
+	// NB: re-loading the dict from file - I didn't think this was required (because book in mem knew its dict) - but the mpbook gets mysteriously zeroed
+	MP_Dict_c* dict = MP_Dict_c::init(dictpath);
+	if(NULL==dict) {
+		printf("Failed to read dict from file.\n");
+		delete sig;
+		return NULL;
+	}
+
+
 	// add all the atoms on:
 	if ( book->substract_add( NULL, sig, NULL ) == 0 )
 	{
 		PyErr_SetString(PyExc_RuntimeError, "No atoms were found in the book to rebuild the signal" );
+		delete sig;
 		return NULL;
 	}
 
