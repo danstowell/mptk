@@ -10,7 +10,7 @@
 static PyMethodDef module_methods[] = {
 	{"loadconfig", mptk_loadconfig, METH_VARARGS, "load MPTK config file from a specific path. do this BEFORE running decompose() etc."},
 	{"decompose" , (PyCFunction) mptk_decompose,  METH_VARARGS | METH_KEYWORDS, "decompose a signal into a 'book' and residual, using Matching Pursuit or related methods.\n(book, residual, decay) = mptk.decompose(sig, dictpath, samplerate, [ snr=0.5, numiters=10, method='mp', getdecay=False, ... ])"},
-	{"reconstruct" , (PyCFunction) mptk_reconstruct,  METH_VARARGS, "mptk.reconstruct(book, dictpath) -- turn a book back into a signal"},
+	{"reconstruct" , (PyCFunction) mptk_reconstruct,  METH_VARARGS, "mptk.reconstruct(book) -- turn a book back into a signal"},
 	{NULL}  /* Sentinel */
 };
 
@@ -134,8 +134,7 @@ PyObject *
 mptk_reconstruct(PyObject *self, PyObject *args)
 {
 	PyObject *pybookobj;
-	const char *dictpath;
-	if (!PyArg_ParseTuple(args, "Os", &pybookobj, &dictpath))
+	if (!PyArg_ParseTuple(args, "O", &pybookobj))
 		return NULL;
 	printf("mptk_reconstruct: parsed args\n");
 	BookObject *pybook = (BookObject*)pybookobj;
@@ -143,26 +142,16 @@ mptk_reconstruct(PyObject *self, PyObject *args)
 
 	printf("pybook stats: numChans %i, numSamples %i, sampleRate %i.\n", ((BookObject*)pybook)->numChans, ((BookObject*)pybook)->numSamples, ((BookObject*)pybook)->sampleRate);
 
-	// NB: re-loading the dict from file - I didn't think this was required (because book in mem knew its dict) - but the mpbook gets mysteriously zeroed
-	MP_Dict_c* dict = MP_Dict_c::init(dictpath);
-	if(NULL==dict) {
-		printf("Failed to read dict from file.\n");
-		delete sig;
-		return NULL;
-	}
-
 	// reconstruct the mpbook from our pybook
 	MP_Book_c *mpbook = MP_Book_c::create(pybook->numChans, pybook->numSamples, pybook->sampleRate);
 	if ( NULL == mpbook )  {
 	    printf("Failed to create a book object.\n" );
-	    delete dict;
 	    return NULL;
 	}
 	printf("mpbook stats before mpbook_from_pybook: numChans %i, numSamples %i, sampleRate %i, numAtoms %i.\n", mpbook->numChans, mpbook->numSamples, mpbook->sampleRate, mpbook->numAtoms);
-	int res = mpbook_from_pybook(mpbook, pybook, dict);
+	int res = mpbook_from_pybook(mpbook, pybook);
 	if ( res != 0 )  {
 	    printf("Failed to complete mpbook object from pybook.\n" );
-	    delete dict;
 	    return NULL;
 	}
 	printf("mpbook stats after mpbook_from_pybook: numChans %i, numSamples %i, sampleRate %i, numAtoms %i.\n", mpbook->numChans, mpbook->numSamples, mpbook->sampleRate, mpbook->numAtoms);
@@ -173,7 +162,6 @@ mptk_reconstruct(PyObject *self, PyObject *args)
 		PyErr_SetString(PyExc_RuntimeError, "Can't make a new signal" );
 		return NULL;
 	}
-
 
 	// add all the atoms on:
 	if ( mpbook->substract_add( NULL, sig, NULL ) == 0 )

@@ -133,7 +133,7 @@ void pyatom_innerxml(PyDictObject* atom, char* str, size_t maxlen){
 }
 
 int
-mpbook_from_pybook(MP_Book_c *mpbook, BookObject* pybook, MP_Dict_c* dict)
+mpbook_from_pybook(MP_Book_c *mpbook, BookObject* pybook)
 {
 	// Given an mpbook already "create"d, this fills it in
 
