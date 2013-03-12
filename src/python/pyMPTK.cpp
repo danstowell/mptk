@@ -133,24 +133,15 @@ mptk_decompose(PyObject *self, PyObject *args, PyObject *keywds)
 PyObject *
 mptk_reconstruct(PyObject *self, PyObject *args)
 {
-	PyObject *pybook;
+	PyObject *pybookobj;
 	const char *dictpath;
-	if (!PyArg_ParseTuple(args, "Os", &pybook, &dictpath))
+	if (!PyArg_ParseTuple(args, "Os", &pybookobj, &dictpath))
 		return NULL;
 	printf("mptk_reconstruct: parsed args\n");
-
-	MP_Book_c *book = ((BookObject*)pybook)->mpbook;
+	BookObject *pybook = (BookObject*)pybookobj;
 	MP_Signal_c *sig;
 
 	printf("pybook stats: numChans %i, numSamples %i, sampleRate %i.\n", ((BookObject*)pybook)->numChans, ((BookObject*)pybook)->numSamples, ((BookObject*)pybook)->sampleRate);
-	printf("book stats: numChans %i, numSamples %i, sampleRate %i, numAtoms %i.\n", book->numChans, book->numSamples, book->sampleRate, book->numAtoms);
-
-	// initialise an empty signal
-	sig = MP_Signal_c::init( book->numChans, book->numSamples, book->sampleRate );
-	if ( sig == NULL ){
-		PyErr_SetString(PyExc_RuntimeError, "Can't make a new signal" );
-		return NULL;
-	}
 
 	// NB: re-loading the dict from file - I didn't think this was required (because book in mem knew its dict) - but the mpbook gets mysteriously zeroed
 	MP_Dict_c* dict = MP_Dict_c::init(dictpath);
@@ -160,9 +151,31 @@ mptk_reconstruct(PyObject *self, PyObject *args)
 		return NULL;
 	}
 
+	// reconstruct the mpbook from our pybook
+	MP_Book_c *mpbook = MP_Book_c::create(pybook->numChans, pybook->numSamples, pybook->sampleRate);
+	if ( NULL == mpbook )  {
+	    printf("Failed to create a book object.\n" );
+	    delete dict;
+	    return NULL;
+	}
+	int res = mpbook_from_pybook(mpbook, pybook, dict);
+	if ( res != 0 )  {
+	    printf("Failed to complete mpbook object from pybook.\n" );
+	    delete dict;
+	    return NULL;
+	}
+	printf("book stats: numChans %i, numSamples %i, sampleRate %i, numAtoms %i.\n", mpbook->numChans, mpbook->numSamples, mpbook->sampleRate, mpbook->numAtoms);
+
+	// initialise an empty signal
+	sig = MP_Signal_c::init( mpbook->numChans, mpbook->numSamples, mpbook->sampleRate );
+	if ( sig == NULL ){
+		PyErr_SetString(PyExc_RuntimeError, "Can't make a new signal" );
+		return NULL;
+	}
+
 
 	// add all the atoms on:
-	if ( book->substract_add( NULL, sig, NULL ) == 0 )
+	if ( mpbook->substract_add( NULL, sig, NULL ) == 0 )
 	{
 		PyErr_SetString(PyExc_RuntimeError, "No atoms were found in the book to rebuild the signal" );
 		delete sig;
