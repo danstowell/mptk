@@ -33,8 +33,7 @@ void       book_dealloc(BookObject* self);
 PyObject * book_new(PyTypeObject *type, PyObject *args, PyObject *kwds);
 int        book_init(BookObject *self, PyObject *args, PyObject *kwds);
 PyObject * book_read(BookObject* self, PyObject *args);
-// This is intended only to be used by the internal functions which read from file or from memory. It doesn't ensure the self->book and book are in sync.
-int book_append_atoms_from_mpbook(BookObject* self, MP_Book_c *mpbook);
+int pybook_from_mpbook(BookObject* self, MP_Book_c *mpbook); // NB BookObject must have been created - see example in pymptk_decompose.cpp
 PyObject * book_short_info(BookObject* self);
 
 static PyMethodDef book_methods[] = {
@@ -62,6 +61,8 @@ PyObject * mptk_reconstruct(PyObject *self, PyObject *args);
 
 MPTK_LIB_EXPORT extern PyArrayObject* mp_create_numpyarray_from_signal(MP_Signal_c *signal);
 MPTK_LIB_EXPORT extern MP_Signal_c*   mp_create_signal_from_numpyarray(const PyArrayObject *nparray);
+
+MPTK_LIB_EXPORT extern MP_Atom_c *mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans, unsigned long int atomIdx);
 
 #endif
 

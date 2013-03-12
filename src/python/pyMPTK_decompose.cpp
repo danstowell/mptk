@@ -62,7 +62,7 @@ mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, cons
 	// get dict in mem in appropriate format - we'll do it from file - easy
 	MP_Dict_c* dict = MP_Dict_c::init(dictpath);
 	if(NULL==dict) {
-		printf("Failed to convert a dict from Matlab to MPTK or to read it from file.\n");
+		printf("Failed to read dict from file.\n");
 		delete signal;
 		return 2;
 	}
@@ -121,7 +121,7 @@ mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, cons
 
 	// create python book object, which will be returned
 	BookObject* thebook = (BookObject*)PyObject_CallObject((PyObject *) &bookType, NULL);
-	book_append_atoms_from_mpbook(thebook, mpbook);
+	pybook_from_mpbook(thebook, mpbook);
 	Py_INCREF(thebook); // TODO this may rescue us from losing data, or it may be a memory leak
 
 	result.thebook = thebook;
