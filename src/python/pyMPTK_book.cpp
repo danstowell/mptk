@@ -80,6 +80,12 @@ pybook_from_mpbook(BookObject* pybook, MP_Book_c *mpbook)
 		if ( mpbook->atom[n]->has_field(MP_CHIRP_PROP) ) {
 			PyDict_SetItemString(atom, "chirp", Py_BuildValue("d", mpbook->atom[n]->get_field(MP_CHIRP_PROP, 0)));
 		}
+		// wintype
+		if ( mpbook->atom[n]->has_field(MP_WINDOW_TYPE_PROP) ) {
+			const char* winname = window_name(mpbook->atom[n]->get_field(MP_WINDOW_TYPE_PROP, 0));
+			//printf("got winname %s\n", winname);
+			PyDict_SetItemString(atom, "wintype", Py_BuildValue("s", winname));
+		}
 		/////////////////////////////////
 		// Multichannel properties:
 		// len
@@ -133,15 +139,16 @@ mpbook_from_pybook(MP_Book_c *mpbook, BookObject* pybook, MP_Dict_c* dict)
 
 	unsigned long int pynatoms = PyList_Size(pybook->atoms);
 	if(pynatoms == 0){
-		printf("Attempted to load mpbook data from a pybook which is empty.\n");
+		PyErr_SetString(PyExc_RuntimeError, "Attempted to load mpbook data from a pybook which is empty.\n");
 		return 4;
 	}
 	if(mpbook->numAtoms != 0){
 		// TODO LATER: could use mpbook->reset()
-		printf("Attempted to load data from a pybook into an mpbook which is not empty.\n");
+		PyErr_SetString(PyExc_RuntimeError, "Attempted to load data from a pybook into an mpbook which is not empty.\n");
 		return 3;
 	}
-	if(mpbook->maxNumAtoms > pynatoms){
+	if(mpbook->maxNumAtoms < pynatoms){
+		PyErr_SetString(PyExc_RuntimeError, "Attempted to load too many atoms.\n");
 		printf("Attempted to load %i atoms from a pybook into an mpbook which can only hold %i atoms.\n", pynatoms, mpbook->maxNumAtoms);
 		return 2;
 	}
@@ -155,6 +162,7 @@ mpbook_from_pybook(MP_Book_c *mpbook, BookObject* pybook, MP_Dict_c* dict)
 		// read atom from pybook, create one in mpbook
 		PyObject* obj = PyList_GetItem(pybook->atoms, (Py_ssize_t)i);
 		if(!PyDict_Check(obj)){
+			PyErr_SetString(PyExc_RuntimeError, "Error -- iterating atoms in book, found entry is not a dict\n");
 			printf("Error -- iterating atoms in book, found entry %i is not a dict\n", i);
 			return 1;
 		}
@@ -171,8 +179,8 @@ mpbook_from_pybook(MP_Book_c *mpbook, BookObject* pybook, MP_Dict_c* dict)
 		}
 	}
 
-	mpbook->recheck_num_samples();
-	mpbook->recheck_num_channels();
+	//mpbook->recheck_num_samples();
+	//mpbook->recheck_num_channels();
 
 	printf("mpbook_from_pybook - [%ld] atoms have been added to book.\n", mpbook->numAtoms);
 
