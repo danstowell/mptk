@@ -13,7 +13,7 @@
 
 // Method to create an atom in mptk data structure, from a python specification in memory.
 // Based on the matlab wrapper: MP_Atom_c *GetMP_Atom(const mxArray *mxBook,MP_Chan_t numChans,unsigned long int atomIdx)
-MP_Atom_c *mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans, unsigned long int atomIdx) {
+MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans, unsigned long int atomIdx) {
 	const char *func = "mpatom_from_pyatom";
 	PyObject* pyatomobj = (PyObject*)pyatom;
 	unsigned long int c; //MP_Chan_t c;
@@ -112,11 +112,6 @@ MP_Atom_c *mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans, unsigned
 		return NULL;
 	}
 
-	// number of atoms for this type (used for browsing the arrays)
-	// TODO CHECK -- number of what...?
-	//unsigned long int nA = (unsigned long int) PyList_Size(listobj_amp);
-	
-
 	// Fill the main fields
 	for (c=0; c<numChans; ++c) { // loop on channels
 		newAtom->support[c].pos = (unsigned long int) PyInt_AsLong(PyList_GetItem(listobj_pos, c));
@@ -139,13 +134,6 @@ MP_Atom_c *mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans, unsigned
 			delete newAtom;
 			return( NULL );
 		}
-
-		//mxArray *mxchirp, *mxfreq, *mxphase, *mxwintype, *mxwinopt;
-		//mxchirp = mxGetField(mxParams,0,"chirp");  // uni
-		//mxfreq = mxGetField(mxParams,0,"freq");   // uni
-		//mxphase = mxGetField(mxParams,0,"phase");   // multi
-		//mxwintype = mxGetField(mxParams,0,"windowtype"); // str
-		//mxwinopt = mxGetField(mxParams,0,"windowoption"); // eek
 
 		keystr = "chirp";
 		keyobj = PyString_FromString(keystr);

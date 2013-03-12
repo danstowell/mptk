@@ -160,25 +160,21 @@ mpbook_from_pybook(MP_Book_c *mpbook, BookObject* pybook, MP_Dict_c* dict)
 		}
 		PyDictObject* pyatom = (PyDictObject*)obj;
 
-/*
-		// Scan the hash map to get the create function of the atom
-		MP_Atom_c* (*createAtom)( FILE *fid, MP_Dict_c *dict, const char mode ) = MP_Atom_Factory_c::get_atom_factory()->get_atom_creator( str );
-		// Scan the hash map to get the create function of the atom
-		if ( NULL != createAtom ) 
-			// Create the the atom
-			newAtom = (*createAtom)(fid,dict,mode);
-		else 
-			mp_error_msg( func, "Cannot read atoms of type '%s'\n",str);
-	  
-		if ( NULL == newAtom )  
-			mp_error_msg( func, "Failed to create an atom of type[%s].\n", str);
-*/
+		MP_Atom_c* mpatom = mpatom_from_pyatom(pyatom, mpbook->numChans, i);
 
-		
+		if ( NULL==mpatom ) {
+			delete mpbook;
+			printf(" GetMP_Atom returned NULL while adding Atom [%ld] to book :", i);
+			return(NULL);
+		} else {
+			mpbook->append( mpatom );
+		}
 	}
 
 	mpbook->recheck_num_samples();
 	mpbook->recheck_num_channels();
+
+	printf("mpbook_from_pybook - [%ld] atoms have been added to book.\n", mpbook->numAtoms);
 
 	return 0;
 }
