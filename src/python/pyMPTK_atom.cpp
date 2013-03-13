@@ -145,7 +145,7 @@ MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans) {
 			return(NULL);
 		}
 	}
-/* TODO these types should be easy to convert
+/* TODO anywave may require some care
 	// ANYWAVE / ANYWAVE_HILBERT
 	else if (strcmp(typestr, "anywave")==0 || strcmp(typestr, "anywavehilbert")==0) {	
 		MP_Anywave_Atom_Plugin_c* anywaveAtom =	(MP_Anywave_Atom_Plugin_c*)newAtom;
@@ -225,6 +225,7 @@ MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans) {
 			return(NULL);
 		}
 	}
+*/
 	 // MCLT ATOM
 	else if (strcmp(typestr, "mclt")==0)	{
 		MP_Mclt_Atom_Plugin_c* mcltAtom =	(MP_Mclt_Atom_Plugin_c*)newAtom;
@@ -233,49 +234,48 @@ MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans) {
 			return( NULL );
 		}
 
-		mxArray *mxchirp, *mxfreq, *mxphase, *mxwintype, *mxwinopt;
-		mxchirp = mxGetField(mxParams,0,"chirp");
-		mxfreq = mxGetField(mxParams,0,"freq");
-		mxphase = mxGetField(mxParams,0,"phase");
-		mxwintype = mxGetField(mxParams,0,"windowtype");
-		mxwinopt = mxGetField(mxParams,0,"windowoption");
-			
-		mcltAtom->windowType = (unsigned char) *(mxGetPr(mxwintype) + (n-1));
-		mcltAtom->windowOption = (double) *(mxGetPr(mxwinopt) + (n-1));
-		mcltAtom->freq	= (MP_Real_t) *(mxGetPr(mxfreq) + (n-1));
-		mcltAtom->chirp = (MP_Real_t) *(mxGetPr(mxchirp) + (n-1));
+		PYATOMOBJ_GETITEM("chirp",   chirpobj,   PyFloat)
+		PYATOMOBJ_GETITEM("freq",    freqobj,    PyFloat)
+		PYATOMOBJ_GETITEM("phase",   phaseobj,   PyList )
+		PYATOMOBJ_GETITEM("wintype", wintypeobj, PyString)
+
+		const char* wintypestr = PyString_AsString(wintypeobj);
+		mcltAtom->windowType = window_type(wintypestr);
+
+		mcltAtom->windowOption = 0.; // TODO (double) *(mxGetPr(mxwinopt) + (n-1));
+		mcltAtom->freq	= (MP_Real_t) PyFloat_AsDouble(freqobj);
+		mcltAtom->chirp = (MP_Real_t) PyFloat_AsDouble(chirpobj);
 		for (c=0;c<numChans;c++) { // loop on channels
-			mcltAtom->phase[c] = (MP_Real_t)	*(mxGetPr(mxphase) + c*nA + (n-1));
+			mcltAtom->phase[c] = (MP_Real_t) PyFloat_AsDouble(PyList_GetItem(phaseobj, c));
 		}
 		return (newAtom);
 	}
 	// MDCT ATOM
 	else if (strcmp(typestr, "mdct")==0) {
 		MP_Mdct_Atom_Plugin_c* mdctAtom =	(MP_Mdct_Atom_Plugin_c*)newAtom;
-		mxArray *mxfreq, *mxwintype, *mxwinopt;
-		mxfreq = mxGetField(mxParams,0,"freq");
-		mxwintype = mxGetField(mxParams,0,"windowtype");
-		mxwinopt = mxGetField(mxParams,0,"windowoption");
+
+		PYATOMOBJ_GETITEM("freq",    freqobj,    PyFloat)
+		PYATOMOBJ_GETITEM("wintype", wintypeobj, PyString)
 			
-		mdctAtom->windowType = (unsigned char) *(mxGetPr(mxwintype) + (n-1));
-		mdctAtom->windowOption = (double) *(mxGetPr(mxwinopt) + (n-1));
-		mdctAtom->freq	= (MP_Real_t) *(mxGetPr(mxfreq) + (n-1));
+		const char* wintypestr = PyString_AsString(wintypeobj);
+		mdctAtom->windowType = window_type(wintypestr);
+		mdctAtom->windowOption = 0; // TODO   (double) *(mxGetPr(mxwinopt) + (n-1));
+		mdctAtom->freq	= (MP_Real_t) PyFloat_AsDouble(freqobj);
 		return(newAtom);
 	}
 	// MDST ATOM
 	else if (strcmp(typestr, "mdst")==0) {
 		MP_Mdst_Atom_Plugin_c* mdstAtom =	(MP_Mdst_Atom_Plugin_c*)newAtom;
-		mxArray *mxfreq, *mxwintype, *mxwinopt;
-		mxfreq = mxGetField(mxParams,0,"freq");
-		mxwintype = mxGetField(mxParams,0,"windowtype");
-		mxwinopt = mxGetField(mxParams,0,"windowoption");
+
+		PYATOMOBJ_GETITEM("freq",    freqobj,    PyFloat)
+		PYATOMOBJ_GETITEM("wintype", wintypeobj, PyString)
 			
-		mdstAtom->windowType = (unsigned char) *(mxGetPr(mxwintype) + (n-1));
-		mdstAtom->windowOption = (double) *(mxGetPr(mxwinopt) + (n-1));
-		mdstAtom->freq	= (MP_Real_t) *(mxGetPr(mxfreq) + (n-1));
+		const char* wintypestr = PyString_AsString(wintypeobj);
+		mdstAtom->windowType = window_type(wintypestr);
+		mdstAtom->windowOption = 0; // TODO   (double) *(mxGetPr(mxwinopt) + (n-1));
+		mdstAtom->freq	= (MP_Real_t) PyFloat_AsDouble(freqobj);
 		return(newAtom);
 	}
-*/
 	else {
 		mp_error_msg(func,"Atom type [%s] unknown, consider adding its information in pyMPTK_atom.cpp\n", typestr);
 		return (NULL);
