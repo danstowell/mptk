@@ -38,6 +38,22 @@
 			delete newAtom; \
 			return NULL; \
 		}
+#define PYATOMOBJ_GETITEM_DOUBLE_NULLOK(keystr, objvarname, doublename, nullmeans) \
+		keyobj = PyString_FromString(keystr); \
+		PyObject* objvarname = PyObject_GetItem(pyatomobj, keyobj); \
+		Py_DECREF(keyobj); \
+		double doublename; \
+		if(objvarname==NULL){ \
+			doublename = nullmeans; \
+		} \
+		else if(!PyFloat_Check(objvarname)){ \
+			printf("'%s' gotobj is not of correct type\n", keystr); \
+			delete newAtom; \
+			return NULL; \
+		} else \
+		{ \
+			doublename = PyFloat_AsDouble(objvarname); \
+		}
 
 // Method to create an atom in mptk data structure, from a python specification in memory.
 // Based on the matlab wrapper: MP_Atom_c *GetMP_Atom(const mxArray *mxBook,MP_Chan_t numChans,unsigned long int atomIdx)
@@ -110,7 +126,8 @@ MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans) {
 		const char* wintypestr = PyString_AsString(wintypeobj);
 		gaborAtom->windowType = window_type(wintypestr);
 
-		gaborAtom->windowOption = 0.; // TODO
+		PYATOMOBJ_GETITEM_DOUBLE_NULLOK("winopt", winoptobj, winopt, 0.)
+		gaborAtom->windowOption = winopt;
 		gaborAtom->freq	= (MP_Real_t) PyFloat_AsDouble(freqobj);
 		gaborAtom->chirp = (MP_Real_t) PyFloat_AsDouble(chirpobj);
 		for (c=0;c<numChans;c++) { // loop on channels
@@ -235,7 +252,8 @@ MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans) {
 		const char* wintypestr = PyString_AsString(wintypeobj);
 		mcltAtom->windowType = window_type(wintypestr);
 
-		mcltAtom->windowOption = 0.; // TODO (double) *(mxGetPr(mxwinopt) + (n-1));
+		PYATOMOBJ_GETITEM_DOUBLE_NULLOK("winopt", winoptobj, winopt, 0.)
+		mcltAtom->windowOption = winopt;
 		mcltAtom->freq	= (MP_Real_t) PyFloat_AsDouble(freqobj);
 		mcltAtom->chirp = (MP_Real_t) PyFloat_AsDouble(chirpobj);
 		for (c=0;c<numChans;c++) { // loop on channels
@@ -252,7 +270,8 @@ MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans) {
 			
 		const char* wintypestr = PyString_AsString(wintypeobj);
 		mdctAtom->windowType = window_type(wintypestr);
-		mdctAtom->windowOption = 0; // TODO   (double) *(mxGetPr(mxwinopt) + (n-1));
+		PYATOMOBJ_GETITEM_DOUBLE_NULLOK("winopt", winoptobj, winopt, 0.)
+		mdctAtom->windowOption = winopt;
 		mdctAtom->freq	= (MP_Real_t) PyFloat_AsDouble(freqobj);
 		return(newAtom);
 	}
@@ -265,7 +284,8 @@ MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans) {
 			
 		const char* wintypestr = PyString_AsString(wintypeobj);
 		mdstAtom->windowType = window_type(wintypestr);
-		mdstAtom->windowOption = 0; // TODO   (double) *(mxGetPr(mxwinopt) + (n-1));
+		PYATOMOBJ_GETITEM_DOUBLE_NULLOK("winopt", winoptobj, winopt, 0.)
+		mdstAtom->windowOption = winopt;
 		mdstAtom->freq	= (MP_Real_t) PyFloat_AsDouble(freqobj);
 		return(newAtom);
 	}
@@ -298,6 +318,11 @@ PyObject*  pyatom_from_mpatom(MP_Atom_c* mpatom, MP_Chan_t numChans){
 		//printf("got winname %s\n", winname);
 		PyDict_SetItemString(atom, "wintype", Py_BuildValue("s", winname));
 	}
+	// winopt
+	if ( mpatom->has_field(MP_WINDOW_OPTION_PROP) ) {
+		PyDict_SetItemString(atom, "winopt", Py_BuildValue("d", mpatom->get_field(MP_WINDOW_OPTION_PROP, 0)));
+	}
+
 	/////////////////////////////////
 	// Multichannel properties:
 	// len
