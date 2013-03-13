@@ -10,6 +10,7 @@
 static PyMethodDef module_methods[] = {
 	{"loadconfig", mptk_loadconfig, METH_VARARGS, "load MPTK config file from a specific path. do this BEFORE running decompose() etc."},
 	{"decompose" , (PyCFunction) mptk_decompose,  METH_VARARGS | METH_KEYWORDS, "decompose a signal into a 'book' and residual, using Matching Pursuit or related methods.\n(book, residual, decay) = mptk.decompose(sig, dictpath, samplerate, [ snr=0.5, numiters=10, method='mp', getdecay=False, ... ])"},
+	{"reconstruct" , (PyCFunction) mptk_reconstruct,  METH_VARARGS, "mptk.reconstruct(book) -- turn a book back into a signal"},
 	{NULL}  /* Sentinel */
 };
 
@@ -128,6 +129,51 @@ mptk_decompose(PyObject *self, PyObject *args, PyObject *keywds)
 	return Py_BuildValue("OOO", result.thebook, result.residual, Py_None); // TODO: return decay as third item
 }
 
+// This method needs to stay in the same file as initmptk(), because of the use of import_array()
+PyObject *
+mptk_reconstruct(PyObject *self, PyObject *args)
+{
+	PyObject *pybookobj;
+	if (!PyArg_ParseTuple(args, "O", &pybookobj))
+		return NULL;
+	printf("mptk_reconstruct: parsed args\n");
+	BookObject *pybook = (BookObject*)pybookobj;
+	MP_Signal_c *sig;
+
+	printf("pybook stats: numChans %i, numSamples %i, sampleRate %i.\n", ((BookObject*)pybook)->numChans, ((BookObject*)pybook)->numSamples, ((BookObject*)pybook)->sampleRate);
+
+	// reconstruct the mpbook from our pybook
+	MP_Book_c *mpbook = MP_Book_c::create(pybook->numChans, pybook->numSamples, pybook->sampleRate);
+	if ( NULL == mpbook )  {
+	    printf("Failed to create a book object.\n" );
+	    return NULL;
+	}
+	printf("mpbook stats before mpbook_from_pybook: numChans %i, numSamples %i, sampleRate %i, numAtoms %i.\n", mpbook->numChans, mpbook->numSamples, mpbook->sampleRate, mpbook->numAtoms);
+	int res = mpbook_from_pybook(mpbook, pybook);
+	if ( res != 0 )  {
+	    printf("Failed to complete mpbook object from pybook.\n" );
+	    return NULL;
+	}
+	printf("mpbook stats after mpbook_from_pybook: numChans %i, numSamples %i, sampleRate %i, numAtoms %i.\n", mpbook->numChans, mpbook->numSamples, mpbook->sampleRate, mpbook->numAtoms);
+
+	// initialise an empty signal
+	sig = MP_Signal_c::init( mpbook->numChans, mpbook->numSamples, mpbook->sampleRate );
+	if ( sig == NULL ){
+		PyErr_SetString(PyExc_RuntimeError, "Can't make a new signal" );
+		return NULL;
+	}
+
+	// add all the atoms on:
+	if ( mpbook->substract_add( NULL, sig, NULL ) == 0 )
+	{
+		PyErr_SetString(PyExc_RuntimeError, "No atoms were found in the book to rebuild the signal" );
+		delete sig;
+		return NULL;
+	}
+
+	PyArrayObject* sigarray = mp_create_numpyarray_from_signal(sig);
+	return Py_BuildValue("O", sigarray);
+}
 
 
 #ifndef PyMODINIT_FUNC	/* declarations for DLL import/export */
