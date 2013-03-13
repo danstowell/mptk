@@ -52,6 +52,7 @@ MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans) {
 		mp_error_msg(func,"-- could not create empty atom of type %s\n", typestr);
 		return( NULL );
 	}
+	// TODO from this point onwards, PYATOMOBJ_GETITEM should "delete newAtom" before returning if it fails - BUT IT DOESN'T
 	// Allocate main fields
 	if ( newAtom->alloc_atom_param(numChans) ) {
 		mp_error_msg(func,"Failed to allocate some vectors in the atom %s. Returning a NULL atom.\n", typestr);
@@ -145,24 +146,25 @@ MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans) {
 			return(NULL);
 		}
 	}
-/* TODO anywave may require some care
 	// ANYWAVE / ANYWAVE_HILBERT
 	else if (strcmp(typestr, "anywave")==0 || strcmp(typestr, "anywavehilbert")==0) {	
 		MP_Anywave_Atom_Plugin_c* anywaveAtom =	(MP_Anywave_Atom_Plugin_c*)newAtom;
-			mxArray *mxtableidx, *mxanywaveidx;
-		mxanywaveidx = mxGetField(mxParams,0,"anywaveIdx");
-		anywaveAtom->anywaveIdx =	(unsigned long int) *(mxGetPr(mxanywaveidx) + (n-1));
-		mxtableidx = mxGetField(mxParams,0,"tableIdx");
-		anywaveAtom->tableIdx =	(unsigned long int) *(mxGetPr(mxtableidx) + (n-1));
+
+		PYATOMOBJ_GETITEM("anywaveIdx", anywaveidxobj, PyList)
+		anywaveAtom->anywaveIdx =	(unsigned long int) PyInt_AsLong(anywaveidxobj);
+
+		PYATOMOBJ_GETITEM("tableIdx", tableidxobj, PyInt)
+		anywaveAtom->tableIdx =	(unsigned long int) PyInt_AsLong(tableidxobj);
 		anywaveAtom->anywaveTable = MPTK_Server_c::get_anywave_server()->tables[anywaveAtom->tableIdx];
 		if(NULL==anywaveAtom->anywaveTable) {
 			mp_error_msg(func,"Failed to retrieve anywaveTable number %d from server\n",anywaveAtom->tableIdx);
 			delete newAtom;
 			return(NULL);
 		}
+
 		if(strcmp(typestr, "anywave")==0) {
 				return (newAtom);
-			} else if (strcmp(typestr, "anywavehilbert")==0) {
+		} else if (strcmp(typestr, "anywavehilbert")==0) {
 			MP_Anywave_Hilbert_Atom_Plugin_c* anywaveHilbertAtom =	(MP_Anywave_Hilbert_Atom_Plugin_c*)newAtom;
 			if ( anywaveHilbertAtom->alloc_hilbert_atom_param(numChans) ) {
 				mp_error_msg(func,"Failed to allocate some vectors in the atom %s. Returning a NULL atom.\n", typestr);
@@ -170,13 +172,8 @@ MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans) {
 				return( NULL );
 			}			
 			// Channel independent fields
-			mxArray *mxrealtableidx = mxGetField(mxParams,0,"realTableIdx");
-			if(NULL== mxrealtableidx) {
-				mp_error_msg(func,"Could not retrieve realTableIdx\n");
-				delete newAtom;
-				return(NULL);
-			}
-					anywaveHilbertAtom->realTableIdx =	(unsigned long int) *(mxGetPr(mxrealtableidx) + (n-1));
+			PYATOMOBJ_GETITEM("realTableIdx", realtableidxobj, PyInt)
+			anywaveHilbertAtom->realTableIdx =	(unsigned long int) PyInt_AsLong(realtableidxobj);
 			anywaveHilbertAtom->anywaveRealTable = MPTK_Server_c::get_anywave_server()->tables[anywaveHilbertAtom->realTableIdx];
 			if(NULL==anywaveHilbertAtom->anywaveRealTable) {
 				mp_error_msg(func,"Failed to retrieve anywaveRealTable number %d from server\n",anywaveHilbertAtom->realTableIdx);
@@ -184,38 +181,22 @@ MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans) {
 				return(NULL);
 			}
 	 
-			mxArray *mxhilberttableidx = mxGetField(mxParams,0,"hilbertTableIdx");
-				if(NULL== mxhilberttableidx) {
-				mp_error_msg(func,"Could not retrieve hilbertTableIdx\n");
-				delete newAtom;
-				return(NULL);
-			}
-	
-			anywaveHilbertAtom->hilbertTableIdx =	(unsigned long int) *(mxGetPr(mxhilberttableidx) + (n-1));
+			PYATOMOBJ_GETITEM("hilbertTableIdx", hilberttableidxobj, PyInt)
+			anywaveHilbertAtom->hilbertTableIdx =	(unsigned long int) PyInt_AsLong(hilberttableidxobj);
 			anywaveHilbertAtom->anywaveHilbertTable = MPTK_Server_c::get_anywave_server()->tables[anywaveHilbertAtom->hilbertTableIdx];
 			if(NULL==anywaveHilbertAtom->anywaveHilbertTable) {
 				mp_error_msg(func,"Failed to retrieve anywaveHilbertTable number %d from server\n",anywaveHilbertAtom->hilbertTableIdx);
 				delete newAtom;
 				return(NULL);
 			}
-	 
+
 			// Channel dependent fields
-			mxArray *mxrealpart = mxGetField(mxParams,0,"realPart");
-			if(NULL== mxrealpart) {
-				mp_error_msg(func,"Could not retrieve realPart\n");
-				delete newAtom;
-				return(NULL);
-			}
-			mxArray *mxhilbertpart = mxGetField(mxParams,0,"hilbertPart");
-			if(NULL== mxhilbertpart) {
-				mp_error_msg(func,"Could not retrieve hilbertPart\n");
-				delete newAtom;
-				return(NULL);
-			}
-			for (c=0;c<numChans;c++) { // loop on channels
+			PYATOMOBJ_GETITEM("realPart", realpartobj, PyList)
+			PYATOMOBJ_GETITEM("hilbertPart", hilbertpartobj, PyList)
+			for (c=0; c<numChans; ++c) { // loop on channels
 				// Real/Hilbert part
-				anywaveHilbertAtom->realPart[c] = (MP_Real_t) *(mxGetPr(mxrealpart) + c*nA + (n-1));
-				anywaveHilbertAtom->hilbertPart[c] = (MP_Real_t) *(mxGetPr(mxhilbertpart) + c*nA + (n-1));
+				anywaveHilbertAtom->realPart[c]    = (MP_Real_t) PyFloat_AsDouble(PyList_GetItem(   realpartobj, c));
+				anywaveHilbertAtom->hilbertPart[c] = (MP_Real_t) PyFloat_AsDouble(PyList_GetItem(hilbertpartobj, c));
 			}
 		 
 			return(newAtom);
@@ -225,7 +206,6 @@ MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans) {
 			return(NULL);
 		}
 	}
-*/
 	 // MCLT ATOM
 	else if (strcmp(typestr, "mclt")==0)	{
 		MP_Mclt_Atom_Plugin_c* mcltAtom =	(MP_Mclt_Atom_Plugin_c*)newAtom;
