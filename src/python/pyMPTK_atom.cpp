@@ -12,7 +12,7 @@
 #include "../plugin/contrib/lam/mdst_atom_plugin.h"
 
 // macro used in mpatom_from_pyatom()
-#define PYATOMOBJ_GETITEM(keystr, objvarname, checktype) \
+#define PYATOMOBJ_GETITEM_NONEWATOM(keystr, objvarname, checktype) \
 		keyobj = PyString_FromString(keystr); \
 		PyObject* objvarname = PyObject_GetItem(pyatomobj, keyobj); \
 		Py_DECREF(keyobj); \
@@ -22,6 +22,20 @@
 		} \
 		if(!checktype##_Check(objvarname)){ \
 			printf("'%s' gotobj is not of correct type\n", keystr); \
+			return NULL; \
+		}
+#define PYATOMOBJ_GETITEM(keystr, objvarname, checktype) \
+		keyobj = PyString_FromString(keystr); \
+		PyObject* objvarname = PyObject_GetItem(pyatomobj, keyobj); \
+		Py_DECREF(keyobj); \
+		if(objvarname==NULL){ \
+			printf("'%s' gotobj is null\n", keystr); \
+			delete newAtom; \
+			return NULL; \
+		} \
+		if(!checktype##_Check(objvarname)){ \
+			printf("'%s' gotobj is not of correct type\n", keystr); \
+			delete newAtom; \
 			return NULL; \
 		}
 
@@ -35,7 +49,7 @@ MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans) {
 	PyObject* keyobj; // used in PYATOMOBJ_GETITEM
 	char* keystr;
 
-	PYATOMOBJ_GETITEM("type", typeobj, PyString)
+	PYATOMOBJ_GETITEM_NONEWATOM("type", typeobj, PyString)
 	const char* typestr = PyString_AsString(typeobj);
 
 
@@ -52,7 +66,6 @@ MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans) {
 		mp_error_msg(func,"-- could not create empty atom of type %s\n", typestr);
 		return( NULL );
 	}
-	// TODO from this point onwards, PYATOMOBJ_GETITEM should "delete newAtom" before returning if it fails - BUT IT DOESN'T
 	// Allocate main fields
 	if ( newAtom->alloc_atom_param(numChans) ) {
 		mp_error_msg(func,"Failed to allocate some vectors in the atom %s. Returning a NULL atom.\n", typestr);
