@@ -9,7 +9,7 @@
 
 static PyMethodDef module_methods[] = {
 	{"loadconfig", mptk_loadconfig, METH_VARARGS, "load MPTK config file from a specific path. do this BEFORE running decompose() etc."},
-	{"decompose" , (PyCFunction) mptk_decompose,  METH_VARARGS | METH_KEYWORDS, "decompose a signal into a 'book' and residual, using Matching Pursuit or related methods.\n(book, residual, decay) = mptk.decompose(sig, dictpath, samplerate, [ snr=0.5, numiters=10, method='mp', getdecay=False, ... ])"},
+	{"decompose" , (PyCFunction) mptk_decompose,  METH_VARARGS | METH_KEYWORDS, "decompose a signal into a 'book' and residual, using Matching Pursuit or related methods.\n(book, residual) = mptk.decompose(sig, dictpath, samplerate, [ snr=0.5, numiters=10, method='mp', decaypath=None, bookpath=None, ... ])"},
 	{"reconstruct" , (PyCFunction) mptk_reconstruct,  METH_VARARGS, "mptk.reconstruct(book) -- turn a book back into a signal"},
 	{"anywave_encode" , (PyCFunction) mptk_anywave_encode,  METH_VARARGS, "mptk.anywave_encode(signal) -- encode a signal as base64, for use in an xml dictionary"},
 	{NULL}  /* Sentinel */
@@ -103,12 +103,12 @@ mptk_decompose(PyObject *self, PyObject *args, PyObject *keywds)
 	unsigned long int numiters=0; // 0 is flag to use SNR not numiters
 	float snr=0.5f;
 	const char *method="mp";
-	int getdecay=0;
+	const char *decaypath = "";
 	const char *bookpath="";
-	static char *kwlist[] = {"signal", "dictpath", "samplerate", "numiters", "snr", "method", "getdecay", "bookpath", NULL};
-	if (!PyArg_ParseTupleAndKeywords(args, keywds, "Osf|kfsis", kwlist,
+	static char *kwlist[] = {"signal", "dictpath", "samplerate", "numiters", "snr", "method", "decaypath", "bookpath", NULL};
+	if (!PyArg_ParseTupleAndKeywords(args, keywds, "Osf|kfsss", kwlist,
 		&pysignal, &dictpath, &samplerate,
-		&numiters, &snr, &method, &getdecay, &bookpath))
+		&numiters, &snr, &method, &decaypath, &bookpath))
 		return NULL;
 	//printf("mptk_decompose: parsed args\n");
 
@@ -122,11 +122,11 @@ mptk_decompose(PyObject *self, PyObject *args, PyObject *keywds)
 
 	// Here's where we call the heavy stuff
 	mptk_decompose_result result;
-	int intresult = mptk_decompose_body(numpysignal, dictpath, (int)samplerate, numiters, snr, method, getdecay==0, bookpath, result);
+	int intresult = mptk_decompose_body(numpysignal, dictpath, (int)samplerate, numiters, snr, method, decaypath, bookpath, result);
 
 	//printf("mptk_decompose: about to return\n");
 	Py_DECREF(numpysignal); // destroy the contig array
-	return Py_BuildValue("OOO", result.thebook, result.residual, Py_None); // TODO: return decay as third item
+	return Py_BuildValue("OO", result.thebook, result.residual);
 }
 
 // This method needs to stay in the same file as initmptk(), because of the use of import_array()
