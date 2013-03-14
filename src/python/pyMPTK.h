@@ -59,6 +59,8 @@ int mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, 
 
 PyObject * mptk_reconstruct(PyObject *self, PyObject *args);
 
+PyObject * mptk_anywave_encode(PyObject *self, PyObject *args);
+
 ////////////////////////////////////////////////////
 // Conversions between MPTK and Python datatypes
 
