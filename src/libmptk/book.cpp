@@ -650,49 +650,7 @@ int MP_Book_c::replace( MP_Atom_c *newAtom, int atomIndex ) {
 	newLen = newAtom->numSamples;
 	if ( numSamples < newLen ) numSamples = newLen;
 	
-	return( 1 ); 
-	
-	//	const char* func = "MP_Book_c::replace(*atom)";
-	//	unsigned long int newLen;
-	//	MP_Chan_t numChansAtom;
-	//	if( newAtom == NULL ) return( 0 );
-	//	/* Else: */
-	//	else {
-	//		
-	//		/* Re-allocate if the max storage capacity is attained for the list: */
-	//		if (numAtoms == maxNumAtoms) {
-	//			MP_Atom_c **tmp;
-	//			/* re-allocate the atom array */
-	//			if ( (tmp = (MP_Atom_c**) realloc( atom, (maxNumAtoms+MP_BOOK_GRANULARITY)*sizeof(MP_Atom_c*) )) == NULL ) {
-	//				mp_error_msg( func, "Can't allocate space for [%d] more atoms."
-	//							 " The book is left untouched, the passed atom is not saved.\n",
-	//							 MP_BOOK_GRANULARITY );
-	//				return( 0 );
-	//			}
-	//			else {
-	//				atom = tmp;
-	//				maxNumAtoms += MP_BOOK_GRANULARITY;
-	//			}
-	//		}
-	//	
-	//		/* Move up all the atoms*/
-	//		for (unsigned int i=0; i < numAtoms-1; i++ ) {
-	//			atom[i] = atom[i+1];
-	//		}
-	//		/* Append the passed atom */
-	//		atom[numAtoms-1] = newAtom;
-	//
-	//		/* Set the number of channels to the max among all the atoms */
-	//		numChansAtom = newAtom->numChans;
-	//		if ( numChans < numChansAtom ) numChans = numChansAtom;
-	//		
-	//		/* Rectify the numSamples if needed */
-	//		newLen = newAtom->numSamples;
-	//		if ( numSamples < newLen ) numSamples = newLen;
-//	
-//	}
-//	
-//	return( 1 );
+	return( 1 ); 	
 }
 
 /******************/
@@ -742,22 +700,18 @@ int MP_Book_c::append( MP_Atom_c *newAtom ) {
 /******************/
 /* Append an atom */
 unsigned long int MP_Book_c::append( MP_Book_c *newBook ) {
-	
-const char* func = "MP_Book_c::append(*book)";
-unsigned long int nAppend = 0;
-if (is_compatible_with(newBook)){
-for (unsigned long int i = 0 ; i< newBook->numAtoms; i++){
-     if (append( newBook->atom[i] ) ) nAppend++;
-     
-     
-}
-
-return (nAppend);}
-else {mp_error_msg( func, "Books have not the same parameters  "
-		       );
-	
-	 return (0);}
-
+	const char* func = "MP_Book_c::append(*book)";
+	unsigned long int nAppend = 0;
+	if (is_compatible_with(newBook)){
+		for (unsigned long int i = 0 ; i< newBook->numAtoms; i++){
+			if (append( newBook->atom[i] ) ) nAppend++;
+		}
+		return (nAppend);
+	}
+	else {
+		mp_error_msg( func, "Books do not have the same parameters - not appending.\n");
+		return (0);
+	}
 }
 
 /***********************************/
@@ -813,64 +767,6 @@ unsigned long int MP_Book_c::substract_add( MP_Signal_c *sigSub, MP_Signal_c *si
   return( n );
 }
 
-/***********************************************/
-/* Build the sum of (some) atoms into a signal */
-/*unsigned long int MP_Book_c::build_waveform( MP_Signal_c *sig, MP_Mask_c* mask ) {
-  const char *func = "MP_Book_c::build_waveform";
-  unsigned long int i;
-  unsigned long int n = 0;
-  
-  // check input
-  if (NULL==sig) {
-	mp_error_msg(func,"The signal is NULL.");
-	return 0;
-  }
-  
-  // allocate the signal at the right size
-  if (sig->init_parameters( numChans, numSamples, sampleRate ) )
-	{
-      mp_error_msg( func, "Failed to perform the internal allocations for the reconstructed signal.\n" );
-      return 0;
-    }
-
-
-  // add the atom waveforms
-  if (mask == NULL) {
-    for (i = 0; i < numAtoms; i++) {
-      atom[i]->substract_add( NULL, sig );
-      n++;
-	// #ifndef NDEBUG
-	// display a 'progress bar'
-	// fprintf( stderr, "\r%2d %%\t [%lu]\t [%lu / %lu]",
-	//(int)(100*(float)i/(float)numAtoms), n, i, numAtoms );
-	//#endif
-	// TODO: make a "progress bar" generic + text function
-	//in mp_messaging.{h,cpp}
-    }
-  }
-  else {
-    for (i = 0; i < numAtoms; i++) {
-      if ( mask->sieve[i] ) {
-	atom[i]->substract_add( NULL, sig );
-	n++;
-	  // #ifndef NDEBUG
-	  // display a 'progress bar'
-	  // fprintf( stderr, "\r%2d %%\t [%lu]\t [%lu / %lu]",
-	  //   (int)(100*(float)i/(float)numAtoms), n, i, numAtoms );
-	  //   #endif
-      }
-    }
-  }
-
-	// #ifndef NDEBUG
-	// terminate the display of the 'progress bar'
-	// fprintf( stderr, "\r%2d %%\t [%lu]\t [%lu / %lu]\n",
-	//    (int)(100*(float)i/(float)numAtoms), n, i, numAtoms );
-	//  #endif
-
-  return( n );
-}
-*/
 /******************************************************/
 /* Adds the sum of the pseudo Wigner-Ville distributions
    of some atoms to a time-frequency map */
