@@ -97,104 +97,13 @@ MP_Book_c *newBook = NULL;
 /* Load from a stream, either in ascii or binary format */
 MP_Book_c* MP_Book_c::create( FILE *fid ) 
 {
-	const char* func = "MP_Book_c::create(fid)";
-	MP_Book_c *newBook = NULL;
-	unsigned int fidNumChans;
-	int fidSampleRate;
-	unsigned long int i, fidNumAtoms, fidNumSamples;
-	unsigned long int nRead = 0;
-	char mode;
-	char line[MP_MAX_STR_LEN];
-	char str[MP_MAX_STR_LEN];
-	MP_Atom_c* newAtom = NULL;
-	MP_Dict_c *dict = NULL;
-
-	// Read the format
-	if ( fgets( line,MP_MAX_STR_LEN,fid) == NULL ) 
-	{
-		mp_error_msg( func, "Cannot get the format line. This book will remain un-changed.\n" );
-		return( NULL );
-	}
-
-	// Try to determine the format
-	if (!strcmp( line, "txt\n" )) 
-		mode = MP_TEXT;
-	else if (!strcmp( line, "bin\n" ) ) 
-		mode = MP_BINARY;
-	else 
-	{
-		mp_error_msg( func, "The loaded book has an erroneous file format. This book will remain un-changed.\n" );
-		return( NULL );
-	}
-
-	// Read the header
-	if ( ( fgets( line,MP_MAX_STR_LEN,fid) == NULL ) || (sscanf( line, "<book nAtom=\"%lu\" numChans=\"%d\" numSamples=\"%lu\" sampleRate=\"%d\" libVersion=\"%[0-9a-z.]\">\n",&fidNumAtoms, &fidNumChans, &fidNumSamples, &fidSampleRate, str ) != 5 )) 
-	{
-		mp_error_msg( func, "Cannot scan the book header. This book will remain un-changed.\n" );
-	    return( NULL );
-	}
-	newBook = create( fidNumChans, fidNumSamples, fidSampleRate);
-	if ( newBook == NULL ) 
-	{
-		mp_error_msg( func, "Failed to create a new book.\n" );
-		return( NULL );
-	}
-
-	// Read the atoms
-	for ( i=0; i<fidNumAtoms; i++ ) 
-	{
-		// Try to read the atom header
-		switch ( mode ) 
-		{
-			case MP_TEXT:
-				if ( (  fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) ||( sscanf( line, "\t<atom type=\"%[a-z]\">\n", str ) != 1 ) ) 
-					mp_error_msg( func, "Cannot scan the atom type (in text mode).\n");
-				break;
-			case MP_BINARY:
-				if ( (  fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) ||( sscanf( line, "%[a-z]\n", str ) != 1 ) )
-					mp_error_msg( func, "Cannot scan the atom type (in binary mode).\n");
-				break;
-			default:
-				mp_error_msg( func, "Unknown read mode in read_atom().\n");
-				break;
-		}
-	
-	// Scan the hash map to get the create function of the atom
-	MP_Atom_c* (*createAtom)( FILE *fid, MP_Dict_c *dict, const char mode ) = MP_Atom_Factory_c::get_atom_factory()->get_atom_creator( str );
-	// Scan the hash map to get the create function of the atom
-	if ( NULL != createAtom ) 
-		// Create the the atom
-		newAtom = (*createAtom)(fid,dict,mode);
-	else 
-		mp_error_msg( func, "Cannot read atoms of type '%s'\n",str);
-  
-	if ( NULL == newAtom )  
-		mp_error_msg( func, "Failed to create an atom of type[%s].\n", str);
-
-  /* In text mode... */
-  if ( mode == MP_TEXT ) {
-    /* ... try to read the closing atom tag */
-    if ( ( fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) ||
-	 ( strcmp( line, "\t</atom>\n" ) ) ) {
-      mp_error_msg( func, "Failed to read the </atom> tag.\n");
-      if ( newAtom ) newAtom = NULL ;
-    }
+  const char* func = "MP_Book_c::create(fid)";
+  MP_Book_c *newBook = create();
+  if(!newBook->load(fid, false))
+  {
+    mp_error_msg( func, "Created new book, but failed to load data into it.\n" );
+    return( NULL );
   }
-       
-    if ( newAtom == NULL ) mp_warning_msg( func, "Failed to read an atom. This atom will be skipped.\n");
-    /* If the atom is OK, add it */
-    else { newBook->append( newAtom ); nRead++; }
-  }
-  
-  /* Read the terminating </book> tag */
-  if ( ( fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) ||
-       ( strcmp( line, "</book>\n" ) ) ) {
-    mp_warning_msg( func, "Could not find the </book> tag."
-		    " (%lu atoms added, %lu atoms expected.)\n",
-		    nRead, fidNumAtoms );
-  return( NULL );
-  }
-
   return( newBook );
 }
 /***********************/
@@ -417,6 +326,10 @@ unsigned long int MP_Book_c::print( const char *fName, const char mode ) {
 /* Load from a stream, either in ascii or binary format */
 unsigned long int MP_Book_c::load( FILE *fid ) 
 {
+	load(fid, true);
+}
+unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
+{
 	const char				*func = "MP_Book_c::load(fid)";
 	unsigned int			fidNumChans;
 	int						fidSampleRate;
@@ -428,14 +341,15 @@ unsigned long int MP_Book_c::load( FILE *fid )
 	MP_Atom_c				*newAtom = NULL;
 	MP_Dict_c				*dict;
 
-	// Retrieve the dictionary
-	if((dict = MP_Dict_c::init( fid )) == NULL)
-    {
-		mp_error_msg( func, "Failed to create a dictionary from XML stdin.\n");
-		// TODO LIB2RER DICT
-		return  1;
-	}
-	
+	if(withDict){
+		// Retrieve the dictionary
+		if((dict = MP_Dict_c::init( fid )) == NULL)
+		{
+			mp_error_msg( func, "Failed to create a dictionary from XML stdin.\n");
+			// TODO LIB2RER DICT
+			return  1;
+		}
+	}	
 	if ( fgets( line,MP_MAX_STR_LEN,fid) == NULL ) 
 	{
 		mp_error_msg( func, "Cannot get the format line. This book will remain un-changed.\n" );
