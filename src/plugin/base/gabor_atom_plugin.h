@@ -112,7 +112,8 @@ public:
    * \sa read_atom()
    */
 
-  static MP_Atom_c* create( FILE *fid, MP_Dict_c *dict, const char mode );
+  static MP_Atom_c* create_fromxml(TiXmlElement *xmlobj, MP_Dict_c *dict);
+  static MP_Atom_c* create_frombinary( FILE *fid, MP_Dict_c *dict);
 protected:
 
   /** \brief Void constructor */

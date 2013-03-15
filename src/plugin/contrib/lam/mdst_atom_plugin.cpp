@@ -63,9 +63,13 @@ MP_Atom_c* MP_Mdst_Atom_Plugin_c::mdst_atom_create_empty(void)
 
 /*************************/
 /* File factory function */
-MP_Atom_c* MP_Mdst_Atom_Plugin_c::create( FILE *fid, MP_Dict_c *dict, const char mode )
+MP_Atom_c* MP_Mdst_Atom_Plugin_c::create_fromxml( TiXmlElement *xmlobj, MP_Dict_c *dict)
 {
-
+	assert(false); // TODO
+	return NULL;
+}
+MP_Atom_c* MP_Mdst_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Dict_c *dict)
+{
   const char* func = "MP_Mdst_Atom_c::init(fid,mode)";
 
   MP_Mdst_Atom_Plugin_c* newAtom = NULL;
@@ -82,7 +86,7 @@ MP_Atom_c* MP_Mdst_Atom_Plugin_c::create( FILE *fid, MP_Dict_c *dict, const char
 		newAtom->dict = dict;
 
   /* Read and check */
-  if ( newAtom->read( fid, mode ) )
+  if ( newAtom->read( fid, MP_BINARY ) )
     {
       mp_error_msg( func, "Failed to read the new MDST atom.\n" );
       delete( newAtom );
@@ -548,5 +552,5 @@ MP_Real_t MP_Mdst_Atom_Plugin_c::get_field( int field, MP_Chan_t chanIdx )
 DLL_EXPORT void registry(void)
 {
   MP_Atom_Factory_c::get_atom_factory()->register_new_atom_empty("mdst",&MP_Mdst_Atom_Plugin_c::mdst_atom_create_empty);
-  MP_Atom_Factory_c::get_atom_factory()->register_new_atom("mdst",&MP_Mdst_Atom_Plugin_c::create);
+  MP_Atom_Factory_c::get_atom_factory()->register_new_atom("mdst",&MP_Mdst_Atom_Plugin_c::create_fromxml,&MP_Mdst_Atom_Plugin_c::create_frombinary);
 }

@@ -324,7 +324,7 @@ unsigned long int MP_Book_c::print( const char *fName, const char mode ) {
 
 /********************************************************/
 /* Load from a stream, either in ascii or binary format */
-unsigned long int MP_Book_c::load( FILE *fid ) 
+unsigned long int MP_Book_c::load( FILE *fid )
 {
 	load(fid, true);
 }
@@ -392,14 +392,43 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 				return 0;
 		}
 		
-		// Scan the hash map to get the create function of the atom
-		MP_Atom_c* (*createAtom)( FILE *fid, MP_Dict_c *dict, const char mode ) = MP_Atom_Factory_c::get_atom_factory()->get_atom_creator( str );
-		// Scan the hash map to get the create function of the atom
-		if ( NULL != createAtom )
-			// Create the the atom
-			newAtom = (*createAtom)(fid,dict,mode);
-		else 
-			mp_error_msg( func, "Cannot read atoms of type '%s'\n",str);
+
+
+		MP_Atom_c* (*createAtomFromXml)( TiXmlElement *xmlobj, MP_Dict_c *dict);
+		MP_Atom_c* (*createAtomFromBinary)( FILE *fid, MP_Dict_c *dict);
+		switch ( mode ) 
+		{
+			case MP_TEXT:
+				// Scan the hash map to get the create function of the atom
+				createAtomFromXml = MP_Atom_Factory_c::get_atom_factory()->get_atom_fromxml_creator( str );
+				// Scan the hash map to get the create function of the atom
+				if ( NULL != createAtomFromXml ){
+
+					// TODO parse the xml and get a TiXmlElement for it
+					TiXmlElement* xmlatomobj = NULL;
+
+
+	//////////////////////// TODO TODO TODO
+	//////////////////////// TODO TODO TODO
+
+
+					// Create the the atom
+					newAtom = (*createAtomFromXml)(xmlatomobj, dict);
+				}else{
+					mp_error_msg( func, "Cannot read atoms of type '%s'\n",str);
+				}
+				break;
+			case MP_BINARY:
+				// Scan the hash map to get the create function of the atom
+				createAtomFromBinary = MP_Atom_Factory_c::get_atom_factory()->get_atom_frombinary_creator( str );
+				// Scan the hash map to get the create function of the atom
+				if ( NULL != createAtomFromBinary) 
+					// Create the the atom
+					newAtom = (*createAtomFromBinary)(fid, dict);
+				else 
+					mp_error_msg( func, "Cannot read atoms of type '%s'\n",str);
+				break;
+		}
 	  
 		// In text mode...
 		if ( mode == MP_TEXT ) 

@@ -81,7 +81,8 @@ public:
   static MP_Atom_c  * Template_atom_create_empty(void);
   
   /** \brief Specific file factory function */
-  static MP_Atom_c* create( FILE *fid, const char mode );
+  static MP_Atom_c* create_fromxml( TiXmlElement *xmlobj, MP_Dict_c *dict );
+  static MP_Atom_c* create_frombinary( FILE *fid, MP_Dict_c *dict );
 
 protected:
 

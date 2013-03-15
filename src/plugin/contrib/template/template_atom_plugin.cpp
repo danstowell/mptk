@@ -56,7 +56,12 @@ using namespace std;
 
 /*************************/
 /* File factory function */
-MP_Atom_c* MP_Template_Atom_Plugin_c::create( FILE *fid, const char mode )
+MP_Atom_c* MP_Template_Atom_Plugin_c::create_fromxml( TiXmlElement *xmlobj, MP_Dict_c *dict)
+{
+	assert(false); // TODO
+	return NULL;
+}
+MP_Atom_c* MP_Template_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Dict_c *dict)
 {
 
   const char* func = "MP_Template_Atom_c::init(fid,mode)";
@@ -72,7 +77,7 @@ MP_Atom_c* MP_Template_Atom_Plugin_c::create( FILE *fid, const char mode )
     }
 
   /* Read and check */
-  if ( newAtom->read( fid, mode ) )
+  if ( newAtom->read( fid, MP_BINARY ) )
     {
       mp_error_msg( func, "Failed read the new Template atom.\n" );
       delete( newAtom );
@@ -261,5 +266,5 @@ DLL_EXPORT void registry(void)
 {
 
   MP_Atom_Factory_c::get_atom_factory()->register_new_atom_empty("template",&MP_Template_Atom_Plugin_c::template_atom_create_empty);
-  MP_Atom_Factory_c::get_atom_factory()->register_new_atom("template",&MP_Template_Atom_Plugin_c::create);
+  MP_Atom_Factory_c::get_atom_factory()->register_new_atom("template",&MP_Template_Atom_Plugin_c::create_fromxml,&MP_Template_Atom_Plugin_c::create_frombinary);
 }

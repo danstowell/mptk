@@ -63,9 +63,13 @@ MP_Atom_c* MP_Mclt_Atom_Plugin_c::mclt_atom_create_empty(void)
 
 /*************************/
 /* File factory function */
-MP_Atom_c* MP_Mclt_Atom_Plugin_c::create( FILE *fid, MP_Dict_c *dict, const char mode )
+MP_Atom_c* MP_Mclt_Atom_Plugin_c::create_fromxml( TiXmlElement *xmlobj, MP_Dict_c *dict)
 {
-
+	assert(false); // TODO
+	return NULL;
+}
+MP_Atom_c* MP_Mclt_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Dict_c *dict)
+{
   const char* func = "MP_Mclt_Atom_c::init(fid,mode)";
 
   MP_Mclt_Atom_Plugin_c* newAtom = NULL;
@@ -82,7 +86,7 @@ MP_Atom_c* MP_Mclt_Atom_Plugin_c::create( FILE *fid, MP_Dict_c *dict, const char
 		newAtom->dict = dict;
 
   /* Read and check */
-  if ( newAtom->read( fid, mode ) )
+  if ( newAtom->read( fid, MP_BINARY ) )
     {
       mp_error_msg( func, "Failed to read the new MCLT atom.\n" );
       delete( newAtom );
@@ -622,6 +626,6 @@ MP_Real_t MP_Mclt_Atom_Plugin_c::get_field( int field, MP_Chan_t chanIdx ) {
 DLL_EXPORT void registry(void)
 {
   MP_Atom_Factory_c::get_atom_factory()->register_new_atom_empty("mclt",&MP_Mclt_Atom_Plugin_c::mclt_atom_create_empty);
-  MP_Atom_Factory_c::get_atom_factory()->register_new_atom("mclt",&MP_Mclt_Atom_Plugin_c::create);
+  MP_Atom_Factory_c::get_atom_factory()->register_new_atom("mclt",&MP_Mclt_Atom_Plugin_c::create_fromxml,&MP_Mclt_Atom_Plugin_c::create_frombinary);
   
 }

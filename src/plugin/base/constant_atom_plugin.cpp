@@ -56,7 +56,12 @@ using namespace std;
 
 /*************************/
 /* File factory function */
-MP_Atom_c* MP_Constant_Atom_Plugin_c::create( FILE *fid, MP_Dict_c *dict, const char mode )
+MP_Atom_c* MP_Constant_Atom_Plugin_c::create_fromxml( TiXmlElement *xmlobj, MP_Dict_c *dict)
+{
+	assert(false); // TODO
+	return NULL;
+}
+MP_Atom_c* MP_Constant_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Dict_c *dict)
 {
 
   const char* func = "MP_Constant_Atom_c::init(fid,mode)";
@@ -75,7 +80,7 @@ MP_Atom_c* MP_Constant_Atom_Plugin_c::create( FILE *fid, MP_Dict_c *dict, const 
 		newAtom->dict = dict;
 
   /* Read and check */
-  if ( newAtom->read( fid, mode ) )
+  if ( newAtom->read( fid, MP_BINARY ) )
     {
       mp_error_msg( func, "Failed read the new Constant atom.\n" );
       delete( newAtom );
@@ -259,5 +264,5 @@ DLL_EXPORT void registry(void)
 {
 
   MP_Atom_Factory_c::get_atom_factory()->register_new_atom_empty("constant",&MP_Constant_Atom_Plugin_c::constant_atom_create_empty);
-  MP_Atom_Factory_c::get_atom_factory()->register_new_atom("constant",&MP_Constant_Atom_Plugin_c::create);
+  MP_Atom_Factory_c::get_atom_factory()->register_new_atom("constant",&MP_Constant_Atom_Plugin_c::create_fromxml,&MP_Constant_Atom_Plugin_c::create_frombinary);
 }

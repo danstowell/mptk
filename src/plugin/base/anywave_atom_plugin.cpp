@@ -60,26 +60,31 @@ MP_Atom_c  * MP_Anywave_Atom_Plugin_c::anywave_atom_create_empty(void)
 
 /*************************/
 /* File factory function */
-MP_Atom_c* MP_Anywave_Atom_Plugin_c::create( FILE *fid, MP_Dict_c *dict, const char mode )
+MP_Atom_c* MP_Anywave_Atom_Plugin_c::create_fromxml( TiXmlElement *xmlobj, MP_Dict_c *dict)
 {
-	const char* func = "MP_Anywave_Atom_c::init(fid,mode)";
+	assert(false); // TODO
+	return NULL;
+}
+MP_Atom_c* MP_Anywave_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Dict_c *dict)
+{
+	const char* func = "MP_Anywave_Atom_c::create_frombinary(fid,dict)";
 	MP_Anywave_Atom_Plugin_c* newAtom = NULL;
 
 	/* Instantiate and check */
 	newAtom = new MP_Anywave_Atom_Plugin_c();
 	if ( newAtom == NULL )
-    {
+	{
 		mp_error_msg( func, "Failed to create a new atom.\n" );
 		return( NULL );
-    }
+	}
 
 	/* Read and check */
-	if ( newAtom->read( fid, mode ) )
-    {
+	if ( newAtom->read( fid, MP_BINARY ) )
+	{
 		mp_error_msg( func, "Failed to read the new Anywave atom.\n" );
 		delete( newAtom );
 		return( NULL );
-    }
+	}
 	return( (MP_Atom_c*)newAtom );
 }
 

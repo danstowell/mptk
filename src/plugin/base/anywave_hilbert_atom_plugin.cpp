@@ -67,30 +67,33 @@ MP_Atom_c  * MP_Anywave_Hilbert_Atom_Plugin_c::anywave_hilbert_atom_create_empty
 
 /*************************/
 /* File factory function */
-MP_Atom_c* MP_Anywave_Hilbert_Atom_Plugin_c::create( FILE *fid, MP_Dict_c *dict, const char mode )
-{
-	const char* func = "MP_Anywave_Hilbert_Atom_c::init(fid,mode)";
+MP_Atom_c* MP_Anywave_Hilbert_Atom_Plugin_c::create_fromxml( TiXmlElement *xmlobj, MP_Dict_c *dict){
+	assert(false); // TODO
+	return NULL;
+}
+MP_Atom_c* MP_Anywave_Hilbert_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Dict_c *dict){
+	const char* func = "MP_Anywave_Atom_c::create_frombinary(fid,dict)";
 
 	MP_Anywave_Hilbert_Atom_Plugin_c* newAtom = NULL;
 
 	// Instantiate and check
 	newAtom = new MP_Anywave_Hilbert_Atom_Plugin_c();
 	if ( newAtom == NULL )
-    {
+	{
 		mp_error_msg( func, "Failed to create a new atom.\n" );
 		return( NULL );
-    }
+	}
 
 	if ( dict->numBlocks != 0 )
 		newAtom->dict = dict;
 
 	// Read and check
-	if ( newAtom->read( fid, mode ) )
-    {
+	if ( newAtom->read( fid, MP_BINARY ) )
+	{
 		mp_error_msg( func, "Failed to read the new Anywave atom.\n" );
 		delete( newAtom );
 		return( NULL );
-    }
+	}
 	return( (MP_Atom_c*)newAtom );
 }
 
@@ -597,8 +600,7 @@ MP_Real_t MP_Anywave_Hilbert_Atom_Plugin_c::get_field( int field , MP_Chan_t cha
 DLL_EXPORT void registry(void)
 {
   MP_Atom_Factory_c::get_atom_factory()->register_new_atom_empty("anywave",&MP_Anywave_Atom_Plugin_c::anywave_atom_create_empty);
-  MP_Atom_Factory_c::get_atom_factory()->register_new_atom("anywave",&MP_Anywave_Atom_Plugin_c::create);
+  MP_Atom_Factory_c::get_atom_factory()->register_new_atom("anywave",&MP_Anywave_Atom_Plugin_c::create_fromxml,&MP_Anywave_Atom_Plugin_c::create_frombinary);
   MP_Atom_Factory_c::get_atom_factory()->register_new_atom_empty("anywavehilbert",&MP_Anywave_Hilbert_Atom_Plugin_c::anywave_hilbert_atom_create_empty);
-  MP_Atom_Factory_c::get_atom_factory()->register_new_atom("anywavehilbert",&MP_Anywave_Hilbert_Atom_Plugin_c::create);
- 
+  MP_Atom_Factory_c::get_atom_factory()->register_new_atom("anywavehilbert",&MP_Anywave_Hilbert_Atom_Plugin_c::create_fromxml,&MP_Anywave_Hilbert_Atom_Plugin_c::create_frombinary); 
 }
