@@ -542,133 +542,13 @@ unsigned long int MP_Book_c::load( const char *fName )
 {
 	const char				*func = "MP_Book_c::load(const char *fName)";
 	FILE					*fid;
-	unsigned int			fidNumChans;
-	int						fidSampleRate;
-	unsigned long int		i, fidNumAtoms, fidNumSamples;
-	unsigned long int		nRead = 0;
-	char					mode;
-	char					line[MP_MAX_STR_LEN];
-	char					str[MP_MAX_STR_LEN];
-	MP_Atom_c				*newAtom = NULL;
-	MP_Dict_c				*dict = NULL;
-
-	// Retrieve the dictionary
-	if((dict = MP_Dict_c::init( fName )) == NULL)
-    {
-		mp_error_msg( func, "Failed to create a dictionary from XML file [%s].\n", fName );
-		// TODO LIB2RER DICT
-		return  1;
-	}
-
 	// Open the book file
 	if ( ( fid = fopen(fName,"rb") ) == NULL ) 
 	{
-		mp_error_msg( func,"Could not open file %s to scan for a book.\n", fName );
+		mp_error_msg( func,"Could not open file %s.\n", fName );
 		return( 0 );
 	}
-	
-  	// Go to the book part (squeeze the dict part)
-	do
-	{
-		if ( fgets( line,MP_MAX_STR_LEN,fid) == NULL ) 
-		{
-			mp_error_msg( func, "Cannot get the format line. This book will remain un-changed.\n" );
-			return 0;	
-		}
-	}
-	while(strcmp(line,"bin\n") && strcmp(line,"txt\n"));
-
-	if(!strcmp(line,"bin\n"))
-		mode = MP_BINARY;
-	if(!strcmp(line,"txt\n"))
-		mode = MP_TEXT;
-
-	// Read the header
-	if ( ( fgets( line,MP_MAX_STR_LEN,fid) == NULL ) || (sscanf( line, "<book nAtom=\"%lu\" numChans=\"%d\" numSamples=\"%lu\" sampleRate=\"%d\" libVersion=\"%[0-9a-z.]\">\n", &fidNumAtoms, &fidNumChans, &fidNumSamples, &fidSampleRate, str ) != 5 )) 
-	{
-		mp_error_msg( func, "Cannot scan the book header. This book will remain un-changed.\n" );
-		return( 0 );
-	}
-
-	// Read the atoms
-	for ( i=0; i<fidNumAtoms; i++ )
-	{
-		switch ( mode ) 
-		{
-			case MP_TEXT:
-				if ( (  fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) ||( sscanf( line, "\t<atom type=\"%[a-z]\">\n", str ) != 1 ) )
-				{
-					mp_error_msg( func, "Cannot scan the atom type (in text mode).\n");
-					return 0;
-				}
-				break;
-
-			case MP_BINARY:
-				if ( (  fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) ||( sscanf( line, "%[a-z]\n", str ) != 1 ) ) 
-				{
-					mp_error_msg( func, "Cannot scan the atom type (in binary mode).\n");
-					return 0;
-				}
-				break;
-			default:
-				mp_error_msg( func, "Unknown read mode in read_atom().\n");
-				return 0;
-		}
-
-		// Scan the hash map to get the create function of the atom
-		MP_Atom_c* (*createAtom)( FILE *fid, MP_Dict_c *dict, const char mode ) = MP_Atom_Factory_c::get_atom_factory()->get_atom_creator( str );
-		// Scan the hash map to get the create function of the atom
-		if ( NULL != createAtom )
-			// Create the the atom
-			newAtom = (*createAtom)(fid,dict,mode);
-		else 
-			mp_error_msg( func, "Cannot read atoms of type '%s'\n",str);
-	  
-		// In text mode...
-		if ( mode == MP_TEXT ) 
-		{
-			// ... try to read the closing atom tag
-			if ( ( fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) ||( strcmp( line, "\t</atom>\n" ) ) ) 
-			{
-				mp_error_msg( func, "Failed to read the </atom> tag.\n");
-				if ( newAtom ) newAtom = NULL ;
-			}
-		}
-
-		if ( newAtom == NULL )  
-			mp_error_msg( func, "Failed to create an atom of type[%s].\n", str);
-		else 
-		{ 
-			append( newAtom ); 
-			nRead++; 
-		}
-	}
-	// Check the global data fields
-	if ( numChans != fidNumChans ) 
-		mp_warning_msg( func, "The book object contains a number of channels [%i] different from the one read in the stream [%i].\n",numChans, fidNumChans );
-
-	if ( numSamples != fidNumSamples ) 
-	{
-		mp_warning_msg( func, "The book object contains a number of samples [%lu] different from the one read in the stream [%lu].\n",numSamples, fidNumSamples );
-		if(numSamples < fidNumSamples) 
-		{
-			mp_warning_msg(func, "The book.numSamples has been set to match the stream numSamples\n");
-			mp_warning_msg(func, "This is a new behaviour in MPTK 0.5.6 which will become standard\n");
-			numSamples = fidNumSamples;		
-		} 
-		else 
-			mp_error_msg(func,"This is very weired, please check your book file\n");
-	}
-
-	if ( (sampleRate != 0) && (sampleRate != fidSampleRate) ) 
-		mp_warning_msg( func, "The book object contains a sample rate [%i] different from the one read in the stream [%i]. Keeping the new sample rate [%i].\n",sampleRate, fidSampleRate, fidSampleRate );
-
-	sampleRate = fidSampleRate;
-
-	// Read the terminating </book> tag
-	if ( ( fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) || ( strcmp( line, "</book>\n" ) ) )
-		mp_warning_msg( func, "Could not find the </book> tag. (%lu atoms added, %lu atoms expected.)\n", nRead, fidNumAtoms );
-	
+	unsigned long int nRead =  load( fid );
 	fclose( fid );
 	return( nRead );
 }
