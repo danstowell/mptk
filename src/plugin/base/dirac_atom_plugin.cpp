@@ -70,13 +70,7 @@ MP_Atom_c  * MP_Dirac_Atom_Plugin_c::dirac_atom_create_empty(void)
 /* File factory function */
 MP_Atom_c* MP_Dirac_Atom_Plugin_c::create_fromxml( TiXmlElement *xmlobj, MP_Dict_c *dict)
 {
-	assert(false); // TODO
-	return NULL;
-}
-MP_Atom_c* MP_Dirac_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Dict_c *dict)
-{
-  
-  const char* func = "MP_Dirac_Atom_Plugin_c::create(fid,mode)";
+  const char* func = "MP_Dirac_Atom_Plugin_c::create_fromxml(fid,mode)";
   MP_Dirac_Atom_Plugin_c* newAtom = NULL;
 
   /* Instantiate and check */
@@ -85,12 +79,35 @@ MP_Atom_c* MP_Dirac_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Dict_c *dict
     mp_error_msg( func, "Failed to create a new atom.\n" );
     return( NULL );
   }
+  	if ( dict->numBlocks != 0 )
+		newAtom->dict = dict;
 
+	// Read and check
+	if ( newAtom->init_fromxml( xmlobj ) )
+	{
+		mp_error_msg( func, "Failed to read the new Dirac atom.\n" );
+		delete( newAtom );
+		return( NULL );
+	}
+
+	return newAtom;
+}
+MP_Atom_c* MP_Dirac_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Dict_c *dict)
+{  
+  const char* func = "MP_Dirac_Atom_Plugin_c::create_frombinary(fid,mode)";
+  MP_Dirac_Atom_Plugin_c* newAtom = NULL;
+
+  /* Instantiate and check */
+  newAtom = new MP_Dirac_Atom_Plugin_c();
+  if ( newAtom == NULL ) {
+    mp_error_msg( func, "Failed to create a new atom.\n" );
+    return( NULL );
+  }
   	if ( dict->numBlocks != 0 )
 		newAtom->dict = dict;
 
   /* Read and check */
-  if ( newAtom->read( fid, MP_BINARY ) ) {
+  if ( newAtom->init_frombinary( fid ) ) {
     mp_error_msg( func, "Failed to read the new Gabor atom.\n" );
     delete( newAtom );
     return( NULL );
@@ -107,12 +124,27 @@ MP_Dirac_Atom_Plugin_c::MP_Dirac_Atom_Plugin_c( void )
 
 /********************/
 /* File reader      */
-int MP_Dirac_Atom_Plugin_c::read( FILE *fid, const char mode ) {
-  
+int MP_Dirac_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
+{
+  const char* func = "MP_Dirac_Atom_c(file)";
+	assert(false); // TODO
+FILE* fid = 0; // TMP TMP TMP
+
+  /* Go up one level */
+  if ( MP_Atom_c::init_fromxml( xmlobj ) ) {
+    mp_error_msg( func, "Reading of Dirac atom fails at the generic atom level.\n" );
+    return( 1 );
+  }
+
+
+  return 0;
+}
+int MP_Dirac_Atom_Plugin_c::init_frombinary( FILE *fid )
+{
   const char* func = "MP_Dirac_Atom_c(file)";
   
   /* Go up one level */
-  if ( MP_Atom_c::read( fid, mode ) ) {
+  if ( MP_Atom_c::init_frombinary( fid ) ) {
     mp_error_msg( func, "Reading of Dirac atom fails at the generic atom level.\n" );
     return( 1 );
   }

@@ -105,39 +105,23 @@ int MP_Atom_c::alloc_atom_param( const MP_Chan_t setNumChans ) {
   return (0);
 }
 
-/********************/
-/* File reader      */
-int MP_Atom_c::read( FILE *fid, const char mode ) {
-
-  const char *func = "MP_Atom_c::read(fid,mode)";
+/******************************/
+/* Initialiser from XML data  */
+int MP_Atom_c::init_fromxml(TiXmlElement* xmlobj){
+  const char *func = "MP_Atom_c::init_fromxml(TiXmlElement* xmlobj)";
   int nItem = 0;
   char str[MP_MAX_STR_LEN];
   double fidAmp;
   MP_Chan_t i, iRead;
   unsigned long int val;
 
-  /* Read numChans */
-  switch ( mode ) {
+	assert(false); // TODO
+FILE* fid = 0; // TMP TMP TMP
 
-  case MP_TEXT:
     if ( fscanf( fid, "\t\t<par type=\"numChans\">%hu</par>\n", &numChans ) != 1 ) {
       mp_error_msg( func, "Cannot scan numChans.\n");
       return( 1 );
     }
-    break;
-
-  case MP_BINARY:
-    if ( mp_fread( &numChans, sizeof(MP_Chan_t), 1, fid ) != 1 ) {
-      mp_error_msg( func, "Cannot read numChans.\n");
-      return( 1 );
-    }
-    break;
-
-  default:
-    mp_error_msg( func, "Unknown mode in file reader.\n");
-    return( 1 );
-    break;
-  }
 
   /* Allocate the storage space... */
   if ( alloc_atom_param( numChans ) ) {
@@ -146,9 +130,6 @@ int MP_Atom_c::read( FILE *fid, const char mode ) {
   }
 
   /* ... and upon success, read the support and amp information */
-  switch ( mode ) {
-    
-  case MP_TEXT:
     /* Support */
     for ( i=0, nItem = 0; i<numChans; i++ ) {
       if (fscanf( fid, "\t\t<support chan=\"%hu\">", &iRead ) == 1)
@@ -179,9 +160,49 @@ int MP_Atom_c::read( FILE *fid, const char mode ) {
 			iRead, i );
       }
     }
-    break;
-    
-  case MP_BINARY:
+
+  /* Check the support information */
+  if ( nItem != ( 2 * (int)( numChans ) ) ) {
+    mp_error_msg( func, "Problem while reading the supports :"
+		  " %lu read, %lu expected.\n",
+		  nItem, 2 * (int )( numChans ) );
+    return( 1 );
+  }
+  
+  /* Compute the totalChanLen and the numSamples */
+  for ( i=0, totalChanLen = 0; i<numChans; i++ ) {
+    val = support[i].pos + support[i].len;
+    if (numSamples < val ) numSamples = val;
+    totalChanLen += support[i].len;
+  }
+
+  return( 0 );
+}
+
+/******************************/
+/* Initialiser from bin data  */
+int MP_Atom_c::init_frombinary( FILE *fid ) {
+
+  const char *func = "MP_Atom_c::init_frombinary( FILE *fid )";
+  int nItem = 0;
+  char str[MP_MAX_STR_LEN];
+  double fidAmp;
+  MP_Chan_t i, iRead;
+  unsigned long int val;
+
+  /* Read numChans */
+    if ( mp_fread( &numChans, sizeof(MP_Chan_t), 1, fid ) != 1 ) {
+      mp_error_msg( func, "Cannot read numChans.\n");
+      return( 1 );
+    }
+
+  /* Allocate the storage space... */
+  if ( alloc_atom_param( numChans ) ) {
+    mp_error_msg( func, "Failed to allocate some vectors in the new atom.\n" );
+    return( 1 );
+  }
+
+  /* ... and upon success, read the support and amp information */
     /* Support */
     for ( i=0, nItem = 0; i<numChans; i++ ) {
       nItem += (int)mp_fread( &(support[i].pos), sizeof(uint32_t), 1, fid );
@@ -192,11 +213,6 @@ int MP_Atom_c::read( FILE *fid, const char mode ) {
       mp_error_msg( func, "Failed to read the amp array.\n" );
       return( 1 );
     }
-    break;
-    
-  default:
-    break;
-  }
 
   /* Check the support information */
   if ( nItem != ( 2 * (int)( numChans ) ) ) {

@@ -146,8 +146,8 @@ class MP_Anywave_Hilbert_Atom_Plugin_c: public MP_Anywave_Atom_Plugin_c {
    /** \brief Internal allocations of all the vectors */
   virtual int alloc_hilbert_atom_param( const MP_Chan_t setNumChans );
 
-  virtual int read( FILE *fid, 
-		    const char mode );
+  virtual int init_fromxml(TiXmlElement* xmlobj);
+  virtual int init_frombinary( FILE *fid );
   
 
   /***************************/

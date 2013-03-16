@@ -65,8 +65,29 @@ MP_Atom_c* MP_Mclt_Atom_Plugin_c::mclt_atom_create_empty(void)
 /* File factory function */
 MP_Atom_c* MP_Mclt_Atom_Plugin_c::create_fromxml( TiXmlElement *xmlobj, MP_Dict_c *dict)
 {
-	assert(false); // TODO
-	return NULL;
+  const char* func = "MP_Mclt_Atom_c::init(fid,mode)";
+
+  MP_Mclt_Atom_Plugin_c* newAtom = NULL;
+
+  /* Instantiate and check */
+  newAtom = new MP_Mclt_Atom_Plugin_c();
+  if ( newAtom == NULL )
+    {
+      mp_error_msg( func, "Failed to create a new atom.\n" );
+      return( NULL );
+    }
+  	if ( dict->numBlocks != 0 )
+		newAtom->dict = dict;
+
+	// Read and check
+	if ( newAtom->init_fromxml( xmlobj ) )
+	{
+		mp_error_msg( func, "Failed to read the new MCLT atom.\n" );
+		delete( newAtom );
+		return( NULL );
+	}
+
+	return newAtom;
 }
 MP_Atom_c* MP_Mclt_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Dict_c *dict)
 {
@@ -81,12 +102,11 @@ MP_Atom_c* MP_Mclt_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Dict_c *dict)
       mp_error_msg( func, "Failed to create a new atom.\n" );
       return( NULL );
     }
-
   	if ( dict->numBlocks != 0 )
 		newAtom->dict = dict;
 
   /* Read and check */
-  if ( newAtom->read( fid, MP_BINARY ) )
+  if ( newAtom->init_frombinary( fid ) )
     {
       mp_error_msg( func, "Failed to read the new MCLT atom.\n" );
       delete( newAtom );
@@ -133,17 +153,20 @@ int MP_Mclt_Atom_Plugin_c::alloc_mclt_atom_param( const MP_Chan_t /* setNumChans
 
 /********************/
 /* File reader      */
-int MP_Mclt_Atom_Plugin_c::read( FILE *fid, const char mode )
+int MP_Mclt_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
 {
-
   const char* func = "MP_Mclt_Atom_c::MP_Mclt_Atom_c(fid,mode)";
+	assert(false); // TODO
+FILE* fid = 0; // TMP TMP TMP
+
   char line[MP_MAX_STR_LEN];
   char str[MP_MAX_STR_LEN];
   double fidFreq,fidPhase;
   unsigned int i, iRead;
 
+
   /* Go up one level */
-  if ( MP_Atom_c::read( fid, mode ) )
+  if ( MP_Atom_c::init_fromxml( xmlobj ) )
     {
       mp_error_msg( func, "Reading of MCLT atom fails at the generic atom level.\n" );
       return( 1 );
@@ -157,10 +180,6 @@ int MP_Mclt_Atom_Plugin_c::read( FILE *fid, const char mode )
     }
 
   /* Then read this level's info */
-  switch ( mode )
-    {
-
-    case MP_TEXT:
       /* Read the window type */
       if ( ( fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) ||
            ( sscanf( line, "\t\t<window type=\"%[a-z]\" opt=\"%lg\"></window>\n", str, &windowOption ) != 2 ) )
@@ -218,9 +237,33 @@ int MP_Mclt_Atom_Plugin_c::read( FILE *fid, const char mode )
                               " in Mclt atom, channel %u.\n", i );
             }
         }
-      break;
 
-    case MP_BINARY:
+
+  return 0;
+}
+int MP_Mclt_Atom_Plugin_c::init_frombinary( FILE *fid )
+{
+  const char* func = "MP_Mclt_Atom_c::MP_Mclt_Atom_c(fid,mode)";
+  char line[MP_MAX_STR_LEN];
+  char str[MP_MAX_STR_LEN];
+  double fidFreq,fidPhase;
+  unsigned int i, iRead;
+
+  /* Go up one level */
+  if ( MP_Atom_c::init_frombinary( fid ) )
+    {
+      mp_error_msg( func, "Reading of MCLT atom fails at the generic atom level.\n" );
+      return( 1 );
+    }
+
+  /* Alloc at local level */
+  if ( alloc_mclt_atom_param( numChans ) )
+    {
+      mp_error_msg( func, "Allocation of MCLT atom failed at the local level.\n" );
+      return( 1 );
+    }
+
+  /* Then read this level's info */
       /* Try to read the atom window */
       if ( ( fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) ||
            ( sscanf( line, "%[a-z]\n", str ) != 1 ) )
@@ -252,17 +295,8 @@ int MP_Mclt_Atom_Plugin_c::read( FILE *fid, const char mode )
           mp_warning_msg( func, "Failed to read the phase array.\n" );
           for ( i=0; i<numChans; i++ ) *(phase+i) = 0.0;
         }
-      break;
-
-    default:
-      mp_error_msg( func, "Unknown read mode met in MP_Mclt_Atom_c( fid , mode )." );
-      return( 1 );
-      break;
-    }
-
 
   return( 0 );
-
 }
 
 

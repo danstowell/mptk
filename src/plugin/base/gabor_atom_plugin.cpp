@@ -65,12 +65,7 @@ MP_Atom_c* MP_Gabor_Atom_Plugin_c::gabor_atom_create_empty(void)
 /* File factory function */
 MP_Atom_c* MP_Gabor_Atom_Plugin_c::create_fromxml( TiXmlElement *xmlobj, MP_Dict_c *dict)
 {
-	assert(false); // TODO
-	return NULL;
-}
-MP_Atom_c* MP_Gabor_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Dict_c *dict)
-{
-  const char* func = "MP_Gabor_Atom_c::init(fid,mode)";
+  const char* func = "MP_Gabor_Atom_c::create_fromxml(fid,mode)";
   MP_Gabor_Atom_Plugin_c* newAtom = NULL;
 
   /* Instantiate and check */
@@ -80,12 +75,36 @@ MP_Atom_c* MP_Gabor_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Dict_c *dict
       mp_error_msg( func, "Failed to create a new atom.\n" );
       return( NULL );
     }
+  	if ( dict->numBlocks != 0 )
+		newAtom->dict = dict;
 
+	// Read and check
+	if ( newAtom->init_fromxml( xmlobj ) )
+	{
+		mp_error_msg( func, "Failed to read the new Gabor atom.\n" );
+		delete( newAtom );
+		return( NULL );
+	}
+
+	return newAtom;
+}
+MP_Atom_c* MP_Gabor_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Dict_c *dict)
+{
+  const char* func = "MP_Gabor_Atom_c::create_frombinary(fid,mode)";
+  MP_Gabor_Atom_Plugin_c* newAtom = NULL;
+
+  /* Instantiate and check */
+  newAtom = new MP_Gabor_Atom_Plugin_c();
+  if ( newAtom == NULL )
+    {
+      mp_error_msg( func, "Failed to create a new atom.\n" );
+      return( NULL );
+    }
   	if ( dict->numBlocks != 0 )
 		newAtom->dict = dict;
 
   /* Read and check */
-  if ( newAtom->read( fid, MP_BINARY ) )
+  if ( newAtom->init_frombinary( fid ) )
     {
       mp_error_msg( func, "Failed to read the new Gabor atom.\n" );
       delete( newAtom );
@@ -127,16 +146,18 @@ int MP_Gabor_Atom_Plugin_c::alloc_gabor_atom_param( const MP_Chan_t setNumChans 
 
 /********************/
 /* File reader      */
-int MP_Gabor_Atom_Plugin_c::read( FILE *fid, const char mode )
+int MP_Gabor_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
 {
-
   const char* func = "MP_Gabor_Atom_c::read(fid,mode)";
+	assert(false); // TODO
+FILE* fid = 0; // TMP TMP TMP
+
   char line[MP_MAX_STR_LEN];
   char str[MP_MAX_STR_LEN];
   double fidFreq,fidChirp,fidPhase;
   MP_Chan_t i, iRead;
   /* Go up one level */
-  if ( MP_Atom_c::read( fid, mode ) )
+  if ( MP_Atom_c::init_fromxml( xmlobj ) )
     {
       mp_error_msg( func, "Reading of Gabor atom fails at the generic atom level.\n" );
       return( 1 );
@@ -150,11 +171,6 @@ int MP_Gabor_Atom_Plugin_c::read( FILE *fid, const char mode )
     }
 
   /* Then read this level's info */
-  switch ( mode )
-    {
-
-    case MP_TEXT:
-
       /* Window type and option */
       if ( ( fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) ||
            ( sscanf( line, "\t\t<window type=\"%[a-z]\" opt=\"%lg\"></window>\n", str, &windowOption ) != 2 ) )
@@ -209,9 +225,31 @@ int MP_Gabor_Atom_Plugin_c::read( FILE *fid, const char mode )
                               iRead, i );
             }
         }
-      break;
 
-    case MP_BINARY:
+  return 0;
+}
+int MP_Gabor_Atom_Plugin_c::init_frombinary( FILE *fid )
+{
+  const char* func = "MP_Gabor_Atom_c::read(fid,mode)";
+  char line[MP_MAX_STR_LEN];
+  char str[MP_MAX_STR_LEN];
+  double fidFreq,fidChirp,fidPhase;
+  MP_Chan_t i, iRead;
+  /* Go up one level */
+  if ( MP_Atom_c::init_frombinary( fid ) )
+    {
+      mp_error_msg( func, "Reading of Gabor atom fails at the generic atom level.\n" );
+      return( 1 );
+    }
+
+  /* Alloc at local level */
+  if ( MP_Gabor_Atom_Plugin_c::alloc_gabor_atom_param( numChans ) )
+    {
+      mp_error_msg( func, "Allocation of Gabor atom failed at the local level.\n" );
+      return( 1 );
+    }
+
+  /* Then read this level's info */
       /* Window type */
       if ( ( fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) ||
            ( sscanf( line, "%[a-z]\n", str ) != 1 ) )
@@ -246,13 +284,6 @@ int MP_Gabor_Atom_Plugin_c::read( FILE *fid, const char mode )
           mp_error_msg( func, "Failed to read the phase array.\n" );
           return( 1 );
         }
-      break;
-
-    default:
-      mp_error_msg( func, "Unknown mode in file reader.\n");
-      return( 1 );
-      break;
-    }
 
   return( 0 );
 }
@@ -744,3 +775,4 @@ DLL_EXPORT void registry(void)
   MP_Atom_Factory_c::get_atom_factory()->register_new_atom("harmonic",&MP_Harmonic_Atom_Plugin_c::create_fromxml,&MP_Harmonic_Atom_Plugin_c::create_frombinary);
   mp_debug_msg( MP_DEBUG_FUNC_EXIT, func, "Leaving\n" );
 }
+

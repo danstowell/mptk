@@ -65,8 +65,28 @@ MP_Atom_c* MP_Nyquist_Atom_Plugin_c::nyquist_atom_create_empty(void)
 /* Specific factory function */
 MP_Atom_c* MP_Nyquist_Atom_Plugin_c::create_fromxml( TiXmlElement *xmlobj, MP_Dict_c *dict)
 {
-	assert(false); // TODO
-	return NULL;
+  const char* func = "MP_Nyquist_Atom_c::init(numChans)";
+  MP_Nyquist_Atom_Plugin_c* newAtom = NULL;
+
+  /* Instantiate and check */
+  newAtom = new MP_Nyquist_Atom_Plugin_c();
+  if ( newAtom == NULL )
+    {
+      mp_error_msg( func, "Failed to create a new Nyquist atom.\n" );
+      return( NULL );
+    }
+  	if ( dict->numBlocks != 0 )
+		newAtom->dict = dict;
+
+	// Read and check
+	if ( newAtom->init_fromxml( xmlobj ) )
+	{
+		mp_error_msg( func, "Failed to read the new Nyquist atom.\n" );
+		delete( newAtom );
+		return( NULL );
+	}
+
+	return newAtom;
 }
 MP_Atom_c* MP_Nyquist_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Dict_c *dict)
 {
@@ -80,12 +100,11 @@ MP_Atom_c* MP_Nyquist_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Dict_c *di
       mp_error_msg( func, "Failed to create a new Nyquist atom.\n" );
       return( NULL );
     }
-
   	if ( dict->numBlocks != 0 )
 		newAtom->dict = dict;
 
    /* Read and check */
-  if ( newAtom->read( fid, MP_BINARY ) ) {
+  if ( newAtom->init_frombinary( fid ) ) {
     mp_error_msg( func, "Failed to read the new Gabor atom.\n" );
     delete( newAtom );
     return( NULL );
@@ -102,13 +121,20 @@ MP_Nyquist_Atom_Plugin_c::MP_Nyquist_Atom_Plugin_c( void )
 
 /********************/
 /* File reader      */
-int MP_Nyquist_Atom_Plugin_c::read( FILE *fid, const char mode )
+int MP_Nyquist_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
 {
+  const char* func = "MP_Nyquist_Atom_c(file)";
+	assert(false); // TODO
+FILE* fid = 0; // TMP TMP TMP
 
+  return 0;
+}
+int MP_Nyquist_Atom_Plugin_c::init_frombinary( FILE *fid )
+{
   const char* func = "MP_Nyquist_Atom_c(file)";
 
   /* Go up one level */
-  if ( MP_Atom_c::read( fid, mode ) )
+  if ( MP_Atom_c::init_frombinary( fid ) )
     {
       mp_error_msg( func, "Reading of Nyquist atom fails at the generic atom level.\n" );
       return( 1 );

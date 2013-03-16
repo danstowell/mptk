@@ -68,8 +68,29 @@ MP_Atom_c  * MP_Anywave_Hilbert_Atom_Plugin_c::anywave_hilbert_atom_create_empty
 /*************************/
 /* File factory function */
 MP_Atom_c* MP_Anywave_Hilbert_Atom_Plugin_c::create_fromxml( TiXmlElement *xmlobj, MP_Dict_c *dict){
-	assert(false); // TODO
-	return NULL;
+	const char* func = "MP_Anywave_Atom_c::create_fromxml(fid,dict)";
+
+	MP_Anywave_Hilbert_Atom_Plugin_c* newAtom = NULL;
+
+	// Instantiate and check
+	newAtom = new MP_Anywave_Hilbert_Atom_Plugin_c();
+	if ( newAtom == NULL )
+	{
+		mp_error_msg( func, "Failed to create a new atom.\n" );
+		return( NULL );
+	}
+	if ( dict->numBlocks != 0 )
+		newAtom->dict = dict;
+
+	// Read and check
+	if ( newAtom->init_fromxml( xmlobj ) )
+	{
+		mp_error_msg( func, "Failed to read the new Anywave atom.\n" );
+		delete( newAtom );
+		return( NULL );
+	}
+
+	return newAtom;
 }
 MP_Atom_c* MP_Anywave_Hilbert_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Dict_c *dict){
 	const char* func = "MP_Anywave_Atom_c::create_frombinary(fid,dict)";
@@ -83,12 +104,11 @@ MP_Atom_c* MP_Anywave_Hilbert_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Di
 		mp_error_msg( func, "Failed to create a new atom.\n" );
 		return( NULL );
 	}
-
 	if ( dict->numBlocks != 0 )
 		newAtom->dict = dict;
 
 	// Read and check
-	if ( newAtom->read( fid, MP_BINARY ) )
+	if ( newAtom->init_frombinary( fid ) )
 	{
 		mp_error_msg( func, "Failed to read the new Anywave atom.\n" );
 		delete( newAtom );
@@ -244,9 +264,11 @@ int MP_Anywave_Hilbert_Atom_Plugin_c::init_tables( void )
 
 /********************/
 /* File reader      */
-int MP_Anywave_Hilbert_Atom_Plugin_c::read( FILE *fid, const char mode )
+int MP_Anywave_Hilbert_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
 {
  const char *func = "MP_Anywave_Hilbert_Atom_c::read";
+	assert(false); // TODO
+FILE* fid = 0; // TMP TMP TMP
   double fidParam;
   unsigned short int readChanIdx, chanIdx;
   MP_Real_t* pParam;
@@ -254,7 +276,7 @@ int MP_Anywave_Hilbert_Atom_Plugin_c::read( FILE *fid, const char mode )
   char* str;
 
   /* Go up one level */
-  if ( MP_Anywave_Atom_Plugin_c::read( fid, mode ) )
+  if ( MP_Anywave_Atom_Plugin_c::init_fromxml( xmlobj ) )
     {
       mp_error_msg( func, "Allocation of Anywave Hilbert atom failed at the Anywave atom level.\n" );
       return( 1 );
@@ -279,11 +301,6 @@ int MP_Anywave_Hilbert_Atom_Plugin_c::read( FILE *fid, const char mode )
     }
 
   /* Try to read the param */
-  switch (mode )
-    {
-
-    case MP_TEXT:
-
       for (chanIdx = 0;
            chanIdx < numChans;
            chanIdx ++)
@@ -334,10 +351,44 @@ int MP_Anywave_Hilbert_Atom_Plugin_c::read( FILE *fid, const char mode )
               return(1);
             }
         }
-      break;
+	return 0;
+}
 
-    case MP_BINARY:
+int MP_Anywave_Hilbert_Atom_Plugin_c::init_frombinary(FILE* fid)
+{
+ const char *func = "MP_Anywave_Hilbert_Atom_c::read";
+  double fidParam;
+  unsigned short int readChanIdx, chanIdx;
+  MP_Real_t* pParam;
+  MP_Real_t* pParamEnd;
+  char* str;
 
+  /* Go up one level */
+  if ( MP_Anywave_Atom_Plugin_c::init_frombinary(fid) )
+    {
+      mp_error_msg( func, "Allocation of Anywave Hilbert atom failed at the Anywave atom level.\n" );
+      return( 1 );
+    }
+
+  if ( ( str = (char*) malloc( MP_MAX_STR_LEN * sizeof(char) ) ) == NULL )
+    {
+      mp_error_msg( func,"The string str cannot be allocated.\n" );
+      return(1);
+    }
+
+  /* init tables */
+  if ( init_tables() )
+    {
+      return(1);
+    }
+
+  /* Allocate and initialize */
+  if ( init_parts() )
+    {
+      return(1);
+    }
+
+  /* Try to read the param */
       /* Try to read the real part */
       if ( mp_fread( realPart,   sizeof(MP_Real_t), numChans, fid ) != (size_t)numChans )
         {
@@ -364,11 +415,6 @@ int MP_Anywave_Hilbert_Atom_Plugin_c::read( FILE *fid, const char mode )
             }
           return(1);
         }
-      break;
-
-    default:
-      break;
-    }
 
   return(0);
 }

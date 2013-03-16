@@ -61,11 +61,9 @@ MP_Atom_c* MP_Harmonic_Atom_Plugin_c::harmonic_atom_create_empty (void)
 
 /*************************/
 /* File factory function */
-MP_Atom_c* MP_Harmonic_Atom_Plugin_c::create( FILE *fid, MP_Dict_c *dict, const char mode )
+MP_Atom_c* MP_Harmonic_Atom_Plugin_c::create_fromxml( TiXmlElement *xmlobj, MP_Dict_c *dict)
 {
-
-  const char* func = "MP_Harmonic_Atom_c::init(fid,mode)";
-
+  const char* func = "MP_Harmonic_Atom_c::create_fromxml(fid,mode)";
   MP_Harmonic_Atom_Plugin_c* newAtom = NULL;
 
   /* Instantiate and check */
@@ -75,12 +73,36 @@ MP_Atom_c* MP_Harmonic_Atom_Plugin_c::create( FILE *fid, MP_Dict_c *dict, const 
       mp_error_msg( func, "Failed to create a new atom.\n" );
       return( NULL );
     }
-
-	if ( dict->numBlocks != 0 )
+  	if ( dict->numBlocks != 0 )
 		newAtom->dict = dict;
 
-	/* Read and check */
-  if ( newAtom->read( fid, mode ) )
+	// Read and check
+	if ( newAtom->init_fromxml( xmlobj ) )
+	{
+		mp_error_msg( func, "Failed to read the new Harmonic atom.\n" );
+		delete( newAtom );
+		return( NULL );
+	}
+
+	return newAtom;
+}
+MP_Atom_c* MP_Harmonic_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Dict_c *dict)
+{
+  const char* func = "MP_Harmonic_Atom_c::create_frombinary(fid,mode)";
+  MP_Harmonic_Atom_Plugin_c* newAtom = NULL;
+
+  /* Instantiate and check */
+  newAtom = new MP_Harmonic_Atom_Plugin_c();
+  if ( newAtom == NULL )
+    {
+      mp_error_msg( func, "Failed to create a new atom.\n" );
+      return( NULL );
+    }
+  	if ( dict->numBlocks != 0 )
+		newAtom->dict = dict;
+
+  /* Read and check */
+  if ( newAtom->init_frombinary( fid ) )
     {
       mp_error_msg( func, "Failed to read the new Harmonic atom.\n" );
       delete( newAtom );
@@ -174,10 +196,12 @@ int MP_Harmonic_Atom_Plugin_c::alloc_harmonic_atom_param( MP_Chan_t setNumChans,
 
 /********************/
 /* File reader      */
-int MP_Harmonic_Atom_Plugin_c::read( FILE *fid, const char mode )
+int MP_Harmonic_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
 {
-
   const char* func = "MP_Harmonic_Atom_c::read(fid,mode)";
+	assert(false); // TODO
+FILE* fid = 0; // TMP TMP TMP
+
   char line[MP_MAX_STR_LEN];
   char str[MP_MAX_STR_LEN];
   double fidHarmonicity,fidAmp,fidPhase;
@@ -185,17 +209,13 @@ int MP_Harmonic_Atom_Plugin_c::read( FILE *fid, const char mode )
   unsigned int j, jRead;
 
   /* Go up one level */
-  if ( MP_Gabor_Atom_Plugin_c::read( fid, mode ) )
+  if ( MP_Gabor_Atom_Plugin_c::init_fromxml( xmlobj ) )
     {
       mp_error_msg( func, "Reading of Harmonic atom fails at the Gabor atom level.\n" );
       return( 1 );
     }
 
   /* Read at local level */
-  switch ( mode )
-    {
-
-    case MP_TEXT:
       /* Read the numPartials */
       if ( ( fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) ||
            ( sscanf( line, "\t\t<par type=\"numPartials\">%u</par>\n", &numPartials ) != 1 ) ||
@@ -204,24 +224,6 @@ int MP_Harmonic_Atom_Plugin_c::read( FILE *fid, const char mode )
           mp_error_msg( func, "Failed to read the number of partials (in text mode).\n");
           return( 1 );
         }
-      break;
-
-    case MP_BINARY:
-      /* Read the number of partials */
-      if ( ( mp_fread( &numPartials,  sizeof(unsigned int), 1, fid ) != 1) ||
-           (numPartials <=1) )
-        {
-          mp_error_msg( func, "Failed to read the number of partials (in binary mode).\n");
-          return( 1 );
-        }
-
-      break;
-
-    default:
-      mp_error_msg( func, "Unknown read mode met in MP_Harmonic_Atom_c( fid , mode )." );
-      return( 1 );
-      break;
-    }
 
   /* Alloc at local level */
   if (alloc_harmonic_atom_param( numChans, numPartials ) )
@@ -231,10 +233,6 @@ int MP_Harmonic_Atom_Plugin_c::read( FILE *fid, const char mode )
     }
 
   /* Try to read the harmonicity, partialAmp and partialPhase */
-  switch (mode )
-    {
-
-    case MP_TEXT:
       /* Read the harmonicity for each partial */
       for (j=0; j < numPartials; j++)
         {
@@ -307,9 +305,42 @@ int MP_Harmonic_Atom_Plugin_c::read( FILE *fid, const char mode )
                               " in harmonic gabor atom, channel %u.\n", i );
             }
         }
-      break;
 
-    case MP_BINARY:
+  return 0;
+}
+int MP_Harmonic_Atom_Plugin_c::init_frombinary( FILE *fid )
+{
+  const char* func = "MP_Harmonic_Atom_c::read(fid,mode)";
+  char line[MP_MAX_STR_LEN];
+  char str[MP_MAX_STR_LEN];
+  double fidHarmonicity,fidAmp,fidPhase;
+  unsigned int i, iRead;
+  unsigned int j, jRead;
+
+  /* Go up one level */
+  if ( MP_Gabor_Atom_Plugin_c::init_frombinary( fid ) )
+    {
+      mp_error_msg( func, "Reading of Harmonic atom fails at the Gabor atom level.\n" );
+      return( 1 );
+    }
+
+  /* Read at local level */
+      /* Read the number of partials */
+      if ( ( mp_fread( &numPartials,  sizeof(unsigned int), 1, fid ) != 1) ||
+           (numPartials <=1) )
+        {
+          mp_error_msg( func, "Failed to read the number of partials (in binary mode).\n");
+          return( 1 );
+        }
+
+  /* Alloc at local level */
+  if (alloc_harmonic_atom_param( numChans, numPartials ) )
+    {
+      mp_error_msg( func, "Allocation of Harmonic atom failed at the local level.\n" );
+      return( 1 );
+    }
+
+  /* Try to read the harmonicity, partialAmp and partialPhase */
       /* Try to read the harmonicity, partialAmp, partialPhase */
       if ( mp_fread( harmonicity,   sizeof(MP_Real_t), numPartials, fid ) != (size_t)numPartials )
         {
@@ -339,11 +370,6 @@ int MP_Harmonic_Atom_Plugin_c::read( FILE *fid, const char mode )
                 }
             }
         }
-      break;
-
-    default: /* This case is never reached */
-      break;
-    }
 
   return( 0 );
 }

@@ -107,7 +107,8 @@ public:
   virtual ~MP_Nyquist_Atom_Plugin_c( void );
 
   /** \brief File reader */
-  virtual int read( FILE *fid, const char mode );
+  virtual int init_fromxml(TiXmlElement* xmlobj);
+  virtual int init_frombinary( FILE *fid );
 
   /***************************/
   /* OUTPUT METHOD           */
