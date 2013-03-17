@@ -238,7 +238,7 @@ int MP_Dict_c::parse_xml_file(TiXmlDocument doc)
 	// Get a handle on the tags "dict"
 	elementDict = hdl.FirstChildElement("dict").Element();
 	if (elementDict == NULL)
-    {
+	{
 		mp_error_msg( func, "Error, cannot find the xml property :\"dict\".\n");
 		return -1;
 	}
@@ -251,7 +251,7 @@ int MP_Dict_c::parse_xml_file(TiXmlDocument doc)
 	// Get a handle on the tags "libVersion"
 	elementVersion = handleDict.FirstChildElement("libVersion").Element();
 	if (elementVersion == NULL)
-    {
+	{
 		mp_error_msg( func, "Error, cannot find the xml property :\"libVersion\".\n");
 		return -1;
 	}
@@ -351,12 +351,12 @@ int MP_Dict_c::load_xml_file(FILE *fid)
 	while(strcmp(line,"</dict>\n"));
 	
 	if (!doc.Parse(szBuffer))
-    {
+	{
 		mp_error_msg( func, "Error while loading the stdin dictionary.\n");
 		mp_error_msg( func, "Error ID: %u .\n", doc.ErrorId() );
 		mp_error_msg( func, "Error description: %s .\n", doc.ErrorDesc());
 		return  0;
-    }
+	}
 	else 
 		return parse_xml_file(doc);
 }

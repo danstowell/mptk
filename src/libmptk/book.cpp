@@ -326,7 +326,7 @@ unsigned long int MP_Book_c::print( const char *fName, const char mode ) {
 /* Load from a stream, either in ascii or binary format */
 unsigned long int MP_Book_c::load( FILE *fid )
 {
-	load(fid, true);
+	return load(fid, true);
 }
 unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 {
@@ -361,94 +361,150 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 	if(!strcmp(line,"txt\n"))
 		mode = MP_TEXT;
 
-	// Read the header
-	if ( ( fgets( line,MP_MAX_STR_LEN,fid) == NULL ) || (sscanf( line, "<book nAtom=\"%lu\" numChans=\"%d\" numSamples=\"%lu\" sampleRate=\"%d\" libVersion=\"%[0-9a-z.]\">\n", &fidNumAtoms, &fidNumChans, &fidNumSamples, &fidSampleRate, str ) != 5 )) 
-	{
-		mp_error_msg( func, "Cannot scan the book header. This book will remain un-changed.\n" );
-		return( 0 );
-	}
 	// Read the atoms
-	for ( i=0; i<fidNumAtoms; i++ )
-	{
-		switch ( mode )
+	MP_Atom_c* (*createAtomFromXml)( TiXmlElement *xmlobj, MP_Dict_c *dict);
+	MP_Atom_c* (*createAtomFromBinary)( FILE *fid, MP_Dict_c *dict);
+	if ( mode == MP_TEXT){  // using if rather than switch, so can declare variables inside
+		// read some xml into memory
+		char line[MP_MAX_STR_LEN];
+		size_t bufferavail = 10000; // TODO big enough?
+		char szBuffer[bufferavail];
+		do
 		{
-			case MP_TEXT:
-				if ( (  fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) ||( sscanf( line, "\t<atom type=\"%[a-z]\">\n", str ) != 1 ) )
+			if ( fgets( line,MP_MAX_STR_LEN,fid) == NULL ) 
+			{
+				mp_error_msg( func, "Error reading XML data from file.\n" );
+				return 0;
+			}
+			if ( strlen(line) > bufferavail )
+			{
+				mp_error_msg( func, "XML data for <book> is larger than the in-memory buffer, cannot load.\n" );
+				return 0;
+			}
+			strcat(szBuffer,line);
+			bufferavail -= strlen(line);
+		}
+		while(strcmp(line,"</dict>\n"));
+
+		// parse the xml
+		TiXmlDocument doc;
+		if (!doc.Parse(szBuffer))
+		{
+			mp_error_msg( func, "Error while loading the XML <book> data:\n");
+			mp_error_msg( func, "Error ID: %u .\n", doc.ErrorId() );
+			mp_error_msg( func, "Error description: %s .\n", doc.ErrorDesc());
+			return  0;
+		}
+
+		// Get a handle on the document
+		TiXmlHandle hdl(&doc);
+
+		// Get a handle on the tags "dict"
+		TiXmlElement *elementBook = hdl.FirstChildElement("book").Element();
+		if (elementBook == NULL)
+		{
+			mp_error_msg( func, "Error, cannot find the xml property :\"book\".\n");
+			return 0;
+		}
+
+		// Get the book tag's properties
+		const char* str_nAtom = elementBook->Attribute("nAtom");
+		if(str_nAtom==NULL){
+			mp_error_msg( func, "Cannot find 'nAtom' attribute in the book header. This book will remain un-changed.\n" );
+			return( 0 );
+		}
+		else if(sscanf( str, "%lu", &fidNumAtoms ) != 1 )
+		{
+			mp_error_msg( func, "Cannot scan the book header. This book will remain un-changed.\n" );
+			return( 0 );
+		}
+		const char* str_numChans = elementBook->Attribute("numChans");
+		if(str_numChans==NULL){
+			mp_error_msg( func, "Cannot find 'numChans' attribute in the book header. This book will remain un-changed.\n" );
+			return( 0 );
+		}
+		else if(sscanf( str, "%u", &fidNumChans ) != 1 )
+		{
+			mp_error_msg( func, "Cannot scan the book header. This book will remain un-changed.\n" );
+			return( 0 );
+		}
+		const char* str_numSamples = elementBook->Attribute("numSamples");
+		if(str_numSamples==NULL){
+			mp_error_msg( func, "Cannot find 'numSamples' attribute in the book header. This book will remain un-changed.\n" );
+			return( 0 );
+		}
+		else if(sscanf( str, "%lu", &fidNumSamples ) != 1 )
+		{
+			mp_error_msg( func, "Cannot scan the book header. This book will remain un-changed.\n" );
+			return( 0 );
+		}
+		if(elementBook->QueryIntAttribute("sampleRate", &fidSampleRate) != TIXML_SUCCESS){
+			mp_error_msg( func, "Cannot find 'sampleRate' attribute in the book header. This book will remain un-changed.\n" );
+			return( 0 );
+		}
+
+
+		// Iterate over the parsed atoms
+		TiXmlNode* atomNode = 0;
+		while( atomNode = elementBook->IterateChildren( atomNode ) ){
+				TiXmlElement* atomElement = atomNode->ToElement();
+				if (atomElement == NULL)
 				{
 					mp_error_msg( func, "Cannot scan the atom type (in text mode).\n");
 					return 0;
 				}
-				break;
-				
-			case MP_BINARY:
-				if ( (  fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) ||( sscanf( line, "%[a-z]\n", str ) != 1 ) ) 
-				{
-					mp_error_msg( func, "Cannot scan the atom type (in binary mode).\n");
+
+				const char* str_type = atomElement->Attribute("type");
+				if(str_type == NULL){
+					mp_error_msg( func, "Cannot find 'type' attribute in the <atom> XML.\n" );
 					return 0;
 				}
-				break;
-			default:
-				mp_error_msg( func, "Unknown read mode in read_atom().\n");
-				return 0;
-		}
-		
-
-
-		MP_Atom_c* (*createAtomFromXml)( TiXmlElement *xmlobj, MP_Dict_c *dict);
-		MP_Atom_c* (*createAtomFromBinary)( FILE *fid, MP_Dict_c *dict);
-		switch ( mode ) 
-		{
-			case MP_TEXT:
 				// Scan the hash map to get the create function of the atom
-				createAtomFromXml = MP_Atom_Factory_c::get_atom_factory()->get_atom_fromxml_creator( str );
+				createAtomFromXml = MP_Atom_Factory_c::get_atom_factory()->get_atom_fromxml_creator( str_type );
 				// Scan the hash map to get the create function of the atom
 				if ( NULL != createAtomFromXml ){
-
-					// TODO parse the xml and get a TiXmlElement for it
-					TiXmlElement* xmlatomobj = NULL;
-
-
-	//////////////////////// TODO TODO TODO
-	//////////////////////// TODO TODO TODO
-
-
 					// Create the the atom
-					newAtom = (*createAtomFromXml)(xmlatomobj, dict);
+					newAtom = (*createAtomFromXml)(atomElement, dict);
 				}else{
-					mp_error_msg( func, "Cannot read atoms of type '%s'\n",str);
+					mp_error_msg( func, "Cannot read atoms of type '%s'\n",str_type);
 				}
-				break;
-			case MP_BINARY:
-				// Scan the hash map to get the create function of the atom
-				createAtomFromBinary = MP_Atom_Factory_c::get_atom_factory()->get_atom_frombinary_creator( str );
-				// Scan the hash map to get the create function of the atom
-				if ( NULL != createAtomFromBinary) 
-					// Create the the atom
-					newAtom = (*createAtomFromBinary)(fid, dict);
-				else 
-					mp_error_msg( func, "Cannot read atoms of type '%s'\n",str);
-				break;
 		}
-	  
-		// In text mode...
-		if ( mode == MP_TEXT ) 
+	} else if ( mode == MP_BINARY){
+		// Read the header
+		if ( ( fgets( line,MP_MAX_STR_LEN,fid) == NULL ) || (sscanf( line, "<book nAtom=\"%lu\" numChans=\"%d\" numSamples=\"%lu\" sampleRate=\"%d\" libVersion=\"%[0-9a-z.]\">\n", &fidNumAtoms, &fidNumChans, &fidNumSamples, &fidSampleRate, str ) != 5 )) 
 		{
-			// ... try to read the closing atom tag
-			if ( ( fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) ||( strcmp( line, "\t</atom>\n" ) ) ) 
+			mp_error_msg( func, "Cannot scan the book header. This book will remain un-changed.\n" );
+			return( 0 );
+		}
+		for ( i=0; i<fidNumAtoms; i++ )
+		{
+			if ( (  fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) ||( sscanf( line, "%[a-z]\n", str ) != 1 ) ) 
 			{
-				mp_error_msg( func, "Failed to read the </atom> tag.\n");
-				if ( newAtom ) newAtom = NULL ;
+				mp_error_msg( func, "Cannot scan the atom type (in binary mode).\n");
+				return 0;
+			}
+			// Scan the hash map to get the create function of the atom
+			createAtomFromBinary = MP_Atom_Factory_c::get_atom_factory()->get_atom_frombinary_creator( str );
+			// Scan the hash map to get the create function of the atom
+			if ( NULL != createAtomFromBinary) 
+				// Create the the atom
+				newAtom = (*createAtomFromBinary)(fid, dict);
+			else 
+				mp_error_msg( func, "Cannot read atoms of type '%s'\n",str);
+	
+			if ( newAtom == NULL )  
+				mp_error_msg( func, "Failed to create an atom of type[%s].\n", str);
+			else 
+			{ 
+				append( newAtom ); 
+				nRead++; 
 			}
 		}
-		
-		if ( newAtom == NULL )  
-			mp_error_msg( func, "Failed to create an atom of type[%s].\n", str);
-		else 
-		{ 
-			append( newAtom ); 
-			nRead++; 
-		}
+	}else{
+		mp_error_msg( func, "Unknown read mode in read_atom().\n");
+		return 0;
 	}
+
 	// Check the global data fields
 	if ( numChans != fidNumChans ) 
 		mp_warning_msg( func, "The book object contains a number of channels [%i] different from the one read in the stream [%i].\n",numChans, fidNumChans );
