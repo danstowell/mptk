@@ -127,6 +127,13 @@ int MP_Nyquist_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
 	assert(false); // TODO
 FILE* fid = 0; // TMP TMP TMP
 
+  /* Go up one level */
+  if ( MP_Atom_c::init_fromxml( xmlobj ) )
+    {
+      mp_error_msg( func, "Reading of Nyquist atom fails at the generic atom level.\n" );
+      return( 1 );
+    }
+
   return 0;
 }
 int MP_Nyquist_Atom_Plugin_c::init_frombinary( FILE *fid )

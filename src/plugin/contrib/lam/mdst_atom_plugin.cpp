@@ -198,11 +198,6 @@ int MP_Mdst_Atom_Plugin_c::init_frombinary( FILE *fid )
       return( 1 );
     }
 
-  /* Alloc at local level */
-  /* if ( local_alloc( numChans ) ) {
-    mp_error_msg( func, "Allocation of MDST atom failed at the local level.\n" );
-    return( 1 );
-    }*/
   /* NOTE: no local alloc needed here because no vectors are used at this level. */
 
   /* Then read this level's info */
