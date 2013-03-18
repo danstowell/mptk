@@ -78,7 +78,7 @@ void pyatom_innerxml(PyDictObject* atom, char* str, size_t maxlen){
 }
 
 int
-mpbook_from_pybook(MP_Book_c *mpbook, BookObject* pybook)
+mpbook_from_pybook(MP_Book_c *mpbook, BookObject* pybook, MP_Dict_c* dict)
 {
 	// Given an mpbook already "create"d, this fills it in
 
@@ -113,10 +113,7 @@ mpbook_from_pybook(MP_Book_c *mpbook, BookObject* pybook)
 		}
 		PyDictObject* pyatom = (PyDictObject*)obj;
 
-		// TODO TODO TODO this should have a real dict as third arg TODO TODO TODO
-		// TODO TODO TODO this should have a real dict as third arg TODO TODO TODO
-		// TODO TODO TODO this should have a real dict as third arg TODO TODO TODO
-		MP_Atom_c* mpatom = mpatom_from_pyatom(pyatom, mpbook->numChans, NULL /*mpbook->dict*/);
+		MP_Atom_c* mpatom = mpatom_from_pyatom(pyatom, mpbook->numChans, dict);
 
 		if ( NULL==mpatom ) {
 			delete mpbook;
