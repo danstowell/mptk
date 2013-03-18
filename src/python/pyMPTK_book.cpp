@@ -117,7 +117,7 @@ mpbook_from_pybook(MP_Book_c *mpbook, BookObject* pybook, MP_Dict_c* dict)
 
 		if ( NULL==mpatom ) {
 			delete mpbook;
-			printf(" GetMP_Atom returned NULL while adding Atom [%ld] to book :", i);
+			printf("mpatom_from_pyatom() returned NULL while adding Atom [%ld] to book\n", i);
 			return(NULL);
 		} else {
 			mpbook->append( mpatom );

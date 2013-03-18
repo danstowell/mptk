@@ -180,7 +180,7 @@ MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans, MP_Dict_
 	else if (strcmp(typestr, "anywave")==0 || strcmp(typestr, "anywavehilbert")==0) {	
 		MP_Anywave_Atom_Plugin_c* anywaveAtom =	(MP_Anywave_Atom_Plugin_c*)newAtom;
 
-		PYATOMOBJ_GETITEM("anywaveIdx", anywaveidxobj, PyList)
+		PYATOMOBJ_GETITEM("anywaveIdx", anywaveidxobj, PyInt)
 		anywaveAtom->anywaveIdx =	(unsigned long int) PyInt_AsLong(anywaveidxobj);
 
 		PYATOMOBJ_GETITEM("tableIdx", tableidxobj, PyInt)
@@ -321,6 +321,26 @@ PyObject*  pyatom_from_mpatom(MP_Atom_c* mpatom, MP_Chan_t numChans){
 	// winopt
 	if ( mpatom->has_field(MP_WINDOW_OPTION_PROP) ) {
 		PyDict_SetItemString(atom, "winopt", Py_BuildValue("d", mpatom->get_field(MP_WINDOW_OPTION_PROP, 0)));
+	}
+	// tableIdx
+	if ( mpatom->has_field(MP_TABLE_IDX_PROP) ) {
+		int val = mpatom->get_field(MP_TABLE_IDX_PROP, 0); // note - using this "val" intermediate because compiler does a bad optimisation otherwise
+		PyDict_SetItemString(atom, "tableIdx", Py_BuildValue("i", val));
+	}
+	// anywaveIdx
+	if ( mpatom->has_field(MP_ANYWAVE_IDX_PROP) ) {
+		int val = mpatom->get_field(MP_ANYWAVE_IDX_PROP, 0);
+		PyDict_SetItemString(atom, "anywaveIdx", Py_BuildValue("i", val));
+	}
+	// realTableIdx
+	if ( mpatom->has_field(MP_REAL_TABLE_IDX_PROP) ) {
+		int val = mpatom->get_field(MP_REAL_TABLE_IDX_PROP, 0);
+		PyDict_SetItemString(atom, "realTableIdx", Py_BuildValue("i", val));
+	}
+	// hilbertTableIdx
+	if ( mpatom->has_field(MP_HILBERT_TABLE_IDX_PROP) ) {
+		int val = mpatom->get_field(MP_HILBERT_TABLE_IDX_PROP, 0);
+		PyDict_SetItemString(atom, "hilbertTableIdx", Py_BuildValue("i", val));
 	}
 
 	/////////////////////////////////
