@@ -367,7 +367,7 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 	if ( mode == MP_TEXT){  // using if rather than switch, so can declare variables inside
 		// read some xml into memory
 		char line[MP_MAX_STR_LEN];
-		size_t bufferavail = 10000; // TODO big enough?
+		size_t bufferavail = 100000; // TODO big enough?
 		char szBuffer[bufferavail];
 		do
 		{
@@ -399,7 +399,7 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 		// Get a handle on the document
 		TiXmlHandle hdl(&doc);
 
-		// Get a handle on the tags "dict"
+		// Get a handle on the tags "book"
 		TiXmlElement *elementBook = hdl.FirstChildElement("book").Element();
 		if (elementBook == NULL)
 		{
@@ -443,14 +443,17 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 			return( 0 );
 		}
 
-
 		// Iterate over the parsed atoms
 		TiXmlNode* atomNode = 0;
 		while( atomNode = elementBook->IterateChildren( atomNode ) ){
 				TiXmlElement* atomElement = atomNode->ToElement();
 				if (atomElement == NULL)
 				{
-					mp_error_msg( func, "Cannot scan the atom type (in text mode).\n");
+					continue; // It's OK to find non-Element children (eg comments), but we don't care about them
+				}
+
+				if(strcmp(atomElement->Value(), "atom") != 0){
+					mp_error_msg( func, "While scanning book XML, child element should have been <atom> - found <%s>\n", atomElement->Value());
 					return 0;
 				}
 
