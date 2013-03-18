@@ -77,7 +77,7 @@ MPTK_LIB_EXPORT extern mxArray *mp_create_mxBook_from_book(MP_Book_c *book);
  * \param dict the dictionary, already converted to native format e.g. by mp_create_dict_from_mxDict()
  * \return the created MTPK object, NULL in case of problem
  */
-MPTK_LIB_EXPORT extern MP_Book_c *mp_create_book_from_mxBook(const mxArray *mxBook, const MP_Dict_c *dict);
+MPTK_LIB_EXPORT extern MP_Book_c *mp_create_book_from_mxBook(const mxArray *mxBook, MP_Dict_c *dict);
 
 /** \brief Converts a MP_Anywave_Table_c object to a Matlab structure 
  * \param AnyTable the MPTK object

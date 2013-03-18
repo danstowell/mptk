@@ -463,7 +463,7 @@ MP_Atom_c *GetMP_Atom(const mxArray *mxBook,MP_Chan_t numChans,unsigned long int
 
 
 // Conversion from MEX book array to MPTK book
-MP_Book_c *mp_create_book_from_mxBook(const mxArray *mxBook, const MP_Dict_c *dict)  {
+MP_Book_c *mp_create_book_from_mxBook(const mxArray *mxBook, MP_Dict_c *dict)  {
 	const char * func = "mp_create_book_from_mxBook(mxArray, MP_Dict_c *)";
 	mxArray *mxTmp,*mxIndex;
 	MP_Chan_t numChans;
