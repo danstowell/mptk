@@ -199,7 +199,7 @@ mxArray * atomGroup::outputMxStruct(mxArray * atom, unsigned int a) {
 
 }
  */
-MP_Atom_c *GetMP_Atom(const mxArray *mxBook,MP_Chan_t numChans,unsigned long int atomIdx) {
+MP_Atom_c *GetMP_Atom(const mxArray *mxBook,MP_Chan_t numChans,unsigned long int atomIdx, MP_Dict_c* dict) {
   const char *func = "mxBook::getMP_Atom";
   
   // Add index info to book structure
@@ -493,7 +493,7 @@ MP_Book_c *mp_create_book_from_mxBook(const mxArray *mxBook, const MP_Dict_c *di
 		if (*(mxGetPr(mxIndex) + a*indexSize + 3) != 0.0 ) { //Only keeps an atom if "selected".
 			//! add_atom
 			mp_debug_msg(MP_DEBUG_ABUNDANT,func," - Adding Atom [%ld] to book :",a);
-			MP_Atom_c * atom = GetMP_Atom(mxBook,numChans,a);      
+			MP_Atom_c * atom = GetMP_Atom(mxBook,numChans,a, dict);
 			if ( NULL==atom ) {
 				delete book;
 				mp_error_msg(func," GetMP_Atom returned NULL while adding Atom [%ld] to book :",a);
