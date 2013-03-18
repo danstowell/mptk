@@ -113,7 +113,10 @@ mpbook_from_pybook(MP_Book_c *mpbook, BookObject* pybook)
 		}
 		PyDictObject* pyatom = (PyDictObject*)obj;
 
-		MP_Atom_c* mpatom = mpatom_from_pyatom(pyatom, mpbook->numChans);
+		// TODO TODO TODO this should have a real dict as third arg TODO TODO TODO
+		// TODO TODO TODO this should have a real dict as third arg TODO TODO TODO
+		// TODO TODO TODO this should have a real dict as third arg TODO TODO TODO
+		MP_Atom_c* mpatom = mpatom_from_pyatom(pyatom, mpbook->numChans, NULL /*mpbook->dict*/);
 
 		if ( NULL==mpatom ) {
 			delete mpbook;

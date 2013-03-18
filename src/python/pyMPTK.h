@@ -78,7 +78,7 @@ MPTK_LIB_EXPORT extern MP_Signal_c*   mp_create_signal_from_numpyarray(const PyA
 MPTK_LIB_EXPORT extern int pybook_from_mpbook(BookObject* pybook, MP_Book_c *mpbook);
 MPTK_LIB_EXPORT extern int mpbook_from_pybook(MP_Book_c *mpbook, BookObject* pybook);
 
-MPTK_LIB_EXPORT extern MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans);
+MPTK_LIB_EXPORT extern MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans, MP_Dict_c* dict);
 MPTK_LIB_EXPORT extern PyObject*  pyatom_from_mpatom(MP_Atom_c* mpatom,    MP_Chan_t numChans);
 
 #endif

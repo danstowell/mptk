@@ -57,7 +57,7 @@
 
 // Method to create an atom in mptk data structure, from a python specification in memory.
 // Based on the matlab wrapper: MP_Atom_c *GetMP_Atom(const mxArray *mxBook,MP_Chan_t numChans,unsigned long int atomIdx)
-MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans) {
+MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans, MP_Dict_c* dict) {
 	const char *func = "mpatom_from_pyatom";
 	PyObject* pyatomobj = (PyObject*)pyatom;
 	unsigned long int c; //MP_Chan_t c;
@@ -70,14 +70,14 @@ MP_Atom_c* mpatom_from_pyatom(PyDictObject* pyatom, MP_Chan_t numChans) {
 
 
 	// Get Atom creator method 
-	MP_Atom_c* (*emptyAtomCreator)( void ) = MP_Atom_Factory_c::get_atom_factory()->get_empty_atom_creator(typestr);
+	MP_Atom_c* (*emptyAtomCreator)( MP_Dict_c* dict) = MP_Atom_Factory_c::get_atom_factory()->get_empty_atom_creator(typestr);
 	if (NULL == emptyAtomCreator)	{
 			printf("-- unknown	MP_Atom_Factory_c method for atomType:%s\n", typestr);
 			return( NULL );
 	}
 	
 	// Create empty atom 
-	MP_Atom_c *newAtom = (*emptyAtomCreator)();
+	MP_Atom_c *newAtom = (*emptyAtomCreator)(dict);
 	if ( NULL==newAtom ) {
 		mp_error_msg(func,"-- could not create empty atom of type %s\n", typestr);
 		return( NULL );
