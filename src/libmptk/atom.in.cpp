@@ -112,7 +112,6 @@ int MP_Atom_c::init_fromxml(TiXmlElement* xmlobj){
   int nItem = 0;
   char str[MP_MAX_STR_LEN];
   double fidAmp;
-  MP_Chan_t i, iRead;
   unsigned long int val;
 
   // First, MONOPHONIC FEATURES
@@ -120,15 +119,18 @@ int MP_Atom_c::init_fromxml(TiXmlElement* xmlobj){
   //      if item is par[type=numchans] store that
   TiXmlNode* kid = 0;
   TiXmlElement* kidel;
-  while(xmlobj->IterateChildren("par", kid)){
+  const char* datatext;
+  while((kid = xmlobj->IterateChildren("par", kid))){
     kidel = kid->ToElement();
-    if((kidel != NULL) && (strcmp(kidel->Attribute("type"), "numchans")==0)){
-      const char* innerText = kidel->GetText();
-      if(innerText == NULL){
-	numChans = strtol(innerText, NULL, 0);
-        if ( numChans == 0 ) {
-          mp_error_msg( func, "Cannot scan numChans.\n");
-          return( 1 );
+    if(kidel != NULL){
+      if(strcmp(kidel->Attribute("type"), "numchans")==0){
+        datatext = kidel->GetText();
+        if(datatext != NULL){
+          numChans = strtol(datatext, NULL, 0);
+          if ( numChans == 0 ) {
+            mp_error_msg( func, "Cannot scan numChans.\n");
+            return( 1 );
+          }
         }
       }
     }
@@ -149,9 +151,8 @@ int MP_Atom_c::init_fromxml(TiXmlElement* xmlobj){
   // Iterate children and:
   //      if item is par[type=amp][chan=x] then store that
   kid = 0;
-  const char* datatext;
   int count_support=0, count_amp=0;
-  while(xmlobj->IterateChildren("par", kid)){
+  while((kid = xmlobj->IterateChildren("par", kid))){
     kidel = kid->ToElement();
     if(kidel != NULL){
 
@@ -167,10 +168,10 @@ int MP_Atom_c::init_fromxml(TiXmlElement* xmlobj){
         }
         // Get the "p" (pos)
 	datatext = kidel->FirstChild("p")->ToElement()->GetText();
-	support[i].pos = strtol(datatext, NULL, 0);
+	support[chan].pos = strtol(datatext, NULL, 0);
         // Get the "l" (len)
 	datatext = kidel->FirstChild("l")->ToElement()->GetText();
-	support[i].len = strtol(datatext, NULL, 0);
+	support[chan].len = strtol(datatext, NULL, 0);
       }
 
       //      if item is par[type=amp][chan=x] then store that
@@ -184,7 +185,7 @@ int MP_Atom_c::init_fromxml(TiXmlElement* xmlobj){
             return( 1 );
         }
 	datatext = kidel->GetText();
-	amp[i] = strtod(datatext, NULL);
+	amp[chan] = strtod(datatext, NULL);
       }
     }
   }
@@ -196,7 +197,7 @@ int MP_Atom_c::init_fromxml(TiXmlElement* xmlobj){
   }
 
   /* Compute the totalChanLen and the numSamples */
-  for ( i=0, totalChanLen = 0; i<numChans; i++ ) {
+  for (long i=0, totalChanLen = 0; i<numChans; i++ ) {
     val = support[i].pos + support[i].len;
     if (numSamples < val ) numSamples = val;
     totalChanLen += support[i].len;

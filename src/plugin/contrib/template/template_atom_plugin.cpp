@@ -120,15 +120,15 @@ MP_Template_Atom_Plugin_c::MP_Template_Atom_Plugin_c( void )
 int MP_Template_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
 {
   const char* func = "MP_Template_Atom_c(file)";
-	assert(false); // TODO
-FILE* fid = 0; // TMP TMP TMP
 
   /* Go up one level */
-  if ( MP_Atom_c::init_fromxml( fid ) )
+  if ( MP_Atom_c::init_fromxml( xmlobj ) )
     {
       mp_error_msg( func, "Reading of Template atom fails at the generic atom level.\n" );
       return( 1 );
     }
+
+  // At THIS point you would implement reading your custom parameters from the xmlobj
 
   return 0;
 }

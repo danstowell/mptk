@@ -156,14 +156,6 @@ int MP_Mclt_Atom_Plugin_c::alloc_mclt_atom_param( const MP_Chan_t /* setNumChans
 int MP_Mclt_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
 {
   const char* func = "MP_Mclt_Atom_c::MP_Mclt_Atom_c(fid,mode)";
-	assert(false); // TODO
-FILE* fid = 0; // TMP TMP TMP
-
-  char line[MP_MAX_STR_LEN];
-  char str[MP_MAX_STR_LEN];
-  double fidFreq,fidPhase;
-  unsigned int i, iRead;
-
 
   /* Go up one level */
   if ( MP_Atom_c::init_fromxml( xmlobj ) )
@@ -180,64 +172,62 @@ FILE* fid = 0; // TMP TMP TMP
     }
 
   /* Then read this level's info */
-      /* Read the window type */
-      if ( ( fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) ||
-           ( sscanf( line, "\t\t<window type=\"%[a-z]\" opt=\"%lg\"></window>\n", str, &windowOption ) != 2 ) )
-        {
-          mp_warning_msg( func, "Failed to read the window type and/or option in a Mclt atom structure.\n");
-          windowType = DSP_UNKNOWN_WIN;
-          return( 1 );
+  // Iterate children and discover:
+  TiXmlNode* kid = 0;
+  TiXmlElement* kidel;
+  const char* datatext;
+  while((kid = xmlobj->IterateChildren(kid))){
+    kidel = kid->ToElement();
+    if(kidel != NULL){
+      // window[type=x][opt=x]
+      if(strcmp(kidel->Value(), "window")==0){
+        datatext = kidel->Attribute("type");
+        if(datatext != NULL){
+	  windowOption = strtod(datatext, NULL);
         }
-      else
-        {
-          /* Convert the window type string */
-          windowType = window_type( str );
+        datatext = kidel->Attribute("opt");
+        if(datatext != NULL){
+	  windowType=window_type(datatext);
         }
+      }
+      // par[type=freq]
+      if((strcmp(kidel->Value(), "par")==0) && (strcmp(kidel->Attribute("type"), "freq")==0)){
+        datatext = kidel->GetText();
+        if(datatext != NULL){
+	  freq = strtod(datatext, NULL);
+        }
+      }
+    }
+  }
 
-      /* freq */
-      if ( ( fgets( str, MP_MAX_STR_LEN, fid ) == NULL  ) ||
-           ( sscanf( str, "\t\t<par type=\"freq\">%lg</par>\n", &fidFreq ) != 1 ) )
-        {
-          mp_warning_msg( func, "Cannot scan freq.\n" );
-        }
-      else
-        {
-          freq = (MP_Real_t)fidFreq;
-        }
+  if(windowType == DSP_UNKNOWN_WIN){
+    mp_error_msg( func, "Failed to read the window type and/or option in a Gabor atom structure.\n");
+    return( 1 );
+  }
 
-      for (i = 0; i<numChans; i++)
-        {
-          /* Opening tag */
-          if ( ( fgets( str, MP_MAX_STR_LEN, fid ) == NULL  ) ||
-               ( sscanf( str, "\t\t<mcltPar chan=\"%u\">\n", &iRead ) != 1 ) )
-            {
-              mp_warning_msg( func, "Cannot scan channel index in atom.\n" );
-            }
-          else if ( iRead != i )
-            {
-              mp_warning_msg( func, "Potential shuffle in the parameters"
-                              " of a Mclt atom. (Index \"%u\" read, \"%u\" expected.)\n",
-                              iRead, i );
-            }
-          /* phase */
-          if ( ( fgets( str, MP_MAX_STR_LEN, fid ) == NULL  ) ||
-               ( sscanf( str, "\t\t<par type=\"phase\">%lg</par>\n", &fidPhase ) != 1 ) )
-            {
-              mp_warning_msg( func, "Cannot scan phase on channel %u.\n", i );
-            }
-          else
-            {
-              *(phase +i) = (MP_Real_t)fidPhase;
-            }
-          /* Closing tag */
-          if ( ( fgets( str, MP_MAX_STR_LEN, fid ) == NULL  ) ||
-               ( strcmp( str , "\t\t</McltPar>\n" ) ) )
-            {
-              mp_warning_msg( func, "Cannot scan the closing parameter tag"
-                              " in Mclt atom, channel %u.\n", i );
-            }
-        }
+  // Now the multichannel stuff - for each mcltPar[chan=x], we expect a single par[type=phase] element
+  kid = 0;
+  int count_phase=0;
+  while((kid = xmlobj->IterateChildren("mcltPar", kid))){
+    long chan = strtol(kid->ToElement()->Attribute("chan"), NULL, 0);
+    if((chan<0) || (chan >= numChans)){
+        mp_error_msg( func, "Found a <mcltPar> tag with channel number %i, which is outside the channel range for this atom [0,%i).\n", chan, numChans);
+        return( 1 );
+    }
+    kidel = kid->FirstChild("par")->ToElement(); // NOTE: this line here assumes there's only one <par> kid. If extending this plugin, it would have to change.
+    if(kidel != NULL){
+        ++count_phase;
+        // Get the channel, and check bounds (could cause bad mem writes otherwise)
+	datatext = kidel->GetText();
+	phase[chan] = strtod(datatext, NULL);
+    }
+  }
 
+  if(count_phase != numChans){
+    mp_error_msg( func, "Scanned an atom with %i channels, but failed to get that number of 'phase' values (%i).\n",
+		numChans, count_phase);
+    return( 1 );
+  }
 
   return 0;
 }

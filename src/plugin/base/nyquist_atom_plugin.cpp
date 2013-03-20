@@ -124,8 +124,6 @@ MP_Nyquist_Atom_Plugin_c::MP_Nyquist_Atom_Plugin_c( void )
 int MP_Nyquist_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
 {
   const char* func = "MP_Nyquist_Atom_c(file)";
-	assert(false); // TODO
-FILE* fid = 0; // TMP TMP TMP
 
   /* Go up one level */
   if ( MP_Atom_c::init_fromxml( xmlobj ) )

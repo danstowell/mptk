@@ -130,12 +130,7 @@ MP_Mdct_Atom_Plugin_c::MP_Mdct_Atom_Plugin_c( void )
 int MP_Mdct_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
 {
 	const char* func = "MP_Mdct_Atom_Plugin_c::read(fid,mode)";
-	assert(false); // TODO
-FILE* fid = 0; // TMP TMP TMP
-
-	char line[MP_MAX_STR_LEN];
 	char str[MP_MAX_STR_LEN];
-	double fidFreq;
 
 	/* Go up one level */
 	if ( MP_Atom_c::init_fromxml( xmlobj ) )
@@ -147,31 +142,40 @@ FILE* fid = 0; // TMP TMP TMP
 	/* NOTE: no local alloc needed here because no vectors are used at this level. */
 
 	/* Then read this level's info */
-		/* Read the window type */
-		if ( ( fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) ||
-				( sscanf( line, "\t\t<window type=\"%[a-z]\" opt=\"%lg\"></window>\n", str, &windowOption ) != 2 ) )
-		{
-			mp_error_msg( func, "Failed to read the window type and/or option in a Mdct atom structure.\n");
-			windowType = DSP_UNKNOWN_WIN;
-			return( 1 );
-		}
-		else
-		{
-			/* Convert the window type string */
-			windowType = window_type( str );
-		}
-		/* freq */
-		if ( ( fgets( str, MP_MAX_STR_LEN, fid ) == NULL  ) ||
-				( sscanf( str, "\t\t<par type=\"freq\">%lg</par>\n", &fidFreq ) != 1 ) )
-		{
-			mp_error_msg( func, "Cannot scan freq.\n" );
-			return( 1 );
-		}
-		else
-		{
-			freq = (MP_Real_t)fidFreq;
-		}
-	return 0;
+  // Iterate children and discover:
+  TiXmlNode* kid = 0;
+  TiXmlElement* kidel;
+  const char* datatext;
+  while((kid = xmlobj->IterateChildren(kid))){
+    kidel = kid->ToElement();
+    if(kidel != NULL){
+      // window[type=x][opt=x]
+      if(strcmp(kidel->Value(), "window")==0){
+        datatext = kidel->Attribute("type");
+        if(datatext != NULL){
+	  windowOption = strtod(datatext, NULL);
+        }
+        datatext = kidel->Attribute("opt");
+        if(datatext != NULL){
+	  windowType=window_type(datatext);
+        }
+      }
+      // par[type=freq]
+      if((strcmp(kidel->Value(), "par")==0) && (strcmp(kidel->Attribute("type"), "freq")==0)){
+        datatext = kidel->GetText();
+        if(datatext != NULL){
+	  freq = strtod(datatext, NULL);
+        }
+      }
+    }
+  }
+
+  if(windowType == DSP_UNKNOWN_WIN){
+    mp_error_msg( func, "Failed to read the window type and/or option in a Gabor atom structure.\n");
+    return( 1 );
+  }
+
+  return 0;
 }
 int MP_Mdct_Atom_Plugin_c::init_frombinary( FILE *fid )
 {

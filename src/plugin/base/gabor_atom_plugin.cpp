@@ -149,13 +149,7 @@ int MP_Gabor_Atom_Plugin_c::alloc_gabor_atom_param( const MP_Chan_t setNumChans 
 int MP_Gabor_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
 {
   const char* func = "MP_Gabor_Atom_c::read(fid,mode)";
-	assert(false); // TODO
-FILE* fid = 0; // TMP TMP TMP
 
-  char line[MP_MAX_STR_LEN];
-  char str[MP_MAX_STR_LEN];
-  double fidFreq,fidChirp,fidPhase;
-  MP_Chan_t i, iRead;
   /* Go up one level */
   if ( MP_Atom_c::init_fromxml( xmlobj ) )
     {
@@ -171,63 +165,81 @@ FILE* fid = 0; // TMP TMP TMP
     }
 
   /* Then read this level's info */
-      /* Window type and option */
-      if ( ( fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) ||
-           ( sscanf( line, "\t\t<window type=\"%[a-z]\" opt=\"%lg\"></window>\n", str, &windowOption ) != 2 ) )
-        {
-          mp_error_msg( func, "Failed to read the window type and/or option in a Gabor atom structure.\n");
-          return( 1 );
-        }
-      else
-        {
-          /* Convert the window type string */
-          windowType = window_type( str );
-        }
-      /* freq */
-      if ( ( fgets( str, MP_MAX_STR_LEN, fid ) == NULL  ) ||
-           ( sscanf( str, "\t\t<par type=\"freq\">%lg</par>\n", &fidFreq ) != 1 ) )
-        {
-          mp_error_msg( func, "Cannot scan freq.\n" );
-          return( 1 );
-        }
-      else
-        {
-          freq = (MP_Real_t)fidFreq;
-        }
-      /* chirp */
-      if ( ( fgets( str, MP_MAX_STR_LEN, fid ) == NULL  ) ||
-           ( sscanf( str, "\t\t<par type=\"chirp\">%lg</par>\n", &fidChirp ) != 1 ) )
-        {
-          mp_error_msg( func, "Cannot scan chirp.\n" );
-          return( 1 );
-        }
-      else
-        {
-          chirp = (MP_Real_t)fidChirp;
-        }
-      /* phase */
-      for (i = 0; i<numChans; i++)
-        {
 
-          if ( ( fgets( str, MP_MAX_STR_LEN, fid ) == NULL  ) ||
-               ( sscanf( str, "\t\t<par type=\"phase\" chan=\"%hu\">%lg</par>\n", &iRead,&fidPhase ) != 2 ) )
-            {
-              mp_error_msg( func, "Cannot scan the phase on channel %hu.\n", i );
-              return( 1 );
-
-            }
-          else *(phase+i) = (MP_Real_t)fidPhase;
-
-          if ( iRead != i )
-            {
-              mp_warning_msg( func, "Potential shuffle in the phases"
-                              " of a Gabor atom. (Index \"%hu\" read, \"%hu\" expected.)\n",
-                              iRead, i );
-            }
+  // First, MONOPHONIC FEATURES
+  // Iterate children and discover:
+  TiXmlNode* kid = 0;
+  TiXmlElement* kidel;
+  const char* datatext;
+  while((kid = xmlobj->IterateChildren(kid))){
+    kidel = kid->ToElement();
+    if(kidel != NULL){
+      // window[type=x][opt=x]
+      if(strcmp(kidel->Value(), "window")==0){
+        datatext = kidel->Attribute("type");
+        if(datatext != NULL){
+	  windowOption = strtod(datatext, NULL);
         }
+        datatext = kidel->Attribute("opt");
+        if(datatext != NULL){
+	  windowType=window_type(datatext);
+        }
+      }
+      // par[type=freq]
+      if((strcmp(kidel->Value(), "par")==0) && (strcmp(kidel->Attribute("type"), "freq")==0)){
+        datatext = kidel->GetText();
+        if(datatext != NULL){
+	  freq = strtod(datatext, NULL);
+        }
+      }
+      // par[type=chirp]
+      if((strcmp(kidel->Value(), "par")==0) && (strcmp(kidel->Attribute("type"), "chirp")==0)){
+        datatext = kidel->GetText();
+        if(datatext != NULL){
+	  chirp = strtod(datatext, NULL);
+        }
+      }
+    }
+  }
+
+  if(windowType == DSP_UNKNOWN_WIN){
+    mp_error_msg( func, "Failed to read the window type and/or option in a Gabor atom structure.\n");
+    return( 1 );
+  }
+
+  // Then, MULTICHANNEL FEATURES
+  // Iterate children and:
+  //      if item is par[type=phase][chan=x] then store that
+  kid = 0;
+  int count_phase=0;
+  while((kid = xmlobj->IterateChildren("par", kid))){
+    kidel = kid->ToElement();
+    if(kidel != NULL){
+      //      if item is par[type=phase][chan=x] then store that
+      if((strcmp(kidel->Value(), "par")==0) && (strcmp(kidel->Attribute("type"), "phase")==0)){
+        ++count_phase;
+        // Get the channel, and check bounds (could cause bad mem writes otherwise)
+	datatext = kidel->Attribute("chan");
+        long chan = strtol(datatext, NULL, 0);
+        if((chan<0) || (chan >= numChans)){
+            mp_error_msg( func, "Found a <par type='amp'> tag with channel number %i, which is outside the channel range for this atom [0,%i).\n", chan, numChans);
+            return( 1 );
+        }
+	datatext = kidel->GetText();
+	phase[chan] = strtod(datatext, NULL);
+      }
+    }
+  }
+
+  if(count_phase != numChans){
+    mp_error_msg( func, "Scanned an atom with %i channels, but failed to get that number of 'phase' values (%i).\n",
+		numChans, count_phase);
+    return( 1 );
+  }
 
   return 0;
 }
+
 int MP_Gabor_Atom_Plugin_c::init_frombinary( FILE *fid )
 {
   const char* func = "MP_Gabor_Atom_c::read(fid,mode)";

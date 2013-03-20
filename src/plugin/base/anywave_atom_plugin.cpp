@@ -125,10 +125,6 @@ MP_Anywave_Atom_Plugin_c::MP_Anywave_Atom_Plugin_c( void ):MP_Atom_c()
 int MP_Anywave_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
 {
 	const char* func = "MP_Anywave_Atom_c::read(fid,mode)";
-	assert(false); // TODO
-FILE* fid = 0; // TMP TMP TMP
-
-	char line[MP_MAX_STR_LEN];
 	char str[MP_MAX_STR_LEN];
 
 	// Go up one level
@@ -138,44 +134,58 @@ FILE* fid = 0; // TMP TMP TMP
 		return 1;
 	}
 
-			// Read the filename
-			if ( ( fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) || ( read_filename_txt(line,"\t\t<par type=\"filename\">%s",str) == false ) )
-			{
-				mp_error_msg( "MP_Anywave_Atom_c::MP_Anywave_Atom_c","Failed to read the filename.\n");
-				return 1;
+	// Iterate children and discover:
+	TiXmlNode* kid = 0;
+	TiXmlElement* kidel;
+	const char* datatext;
+	while((kid = xmlobj->IterateChildren("par", kid))){
+		kidel = kid->ToElement();
+		if(kidel != NULL){
+			// par[type=filename] contains string (put it in "str")
+			if((strcmp(kidel->Value(), "par")==0) && (strcmp(kidel->Attribute("type"), "blockIdx")==0)){
+				datatext = kidel->GetText();
+				if(datatext != NULL){
+					strncpy(str, datatext, MP_MAX_STR_LEN-1);
+				}
 			}
-			// Try to read the block index of the atom
-			if ( ( fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) || ( sscanf( line, "\t\t<par type=\"blockIdx\">%u</par>\n", &blockIdx ) != 1 ) )
-			{
-				mp_error_msg( "MP_Anywave_Atom_c::MP_Anywave_Atom_c","Failed to scan the block index.\n");
-				return 1;
+			// par[type=blockIdx] contains int
+			if((strcmp(kidel->Value(), "par")==0) && (strcmp(kidel->Attribute("type"), "blockIdx")==0)){
+				datatext = kidel->GetText();
+				if(datatext != NULL){
+				  blockIdx = strtol(datatext, NULL, 0);
+				}
 			}
-			if(!strcmp(str,""))
-			{
-				// Creation of a param map using the datas of the block "blockIdx"
-				map<string, string, mp_ltstring> *paramMap;
-				paramMap = dict->block[blockIdx]->get_block_parameters_map();
-				tableIdx = MPTK_Server_c::get_anywave_server()->add( paramMap );
-				anywaveTable = MPTK_Server_c::get_anywave_server()->tables[tableIdx];
+			// par[type=filterIdx] contains long
+			if((strcmp(kidel->Value(), "par")==0) && (strcmp(kidel->Attribute("type"), "filterIdx")==0)){
+				datatext = kidel->GetText();
+				if(datatext != NULL){
+				  anywaveIdx = strtol(datatext, NULL, 0);
+				}
 			}
-			else
-			{
-				// if the table corresponding to filename is already in the anywave server, update tableIdx and anywaveTable. If not, add the table and update tableIdx and anywaveTable
-				tableIdx = MPTK_Server_c::get_anywave_server()->add( str );
-				anywaveTable = MPTK_Server_c::get_anywave_server()->tables[tableIdx];
-			}
+		}
+	}
 
-			// Read the anywave number
-			if ( ( fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) || ( sscanf( line, "\t\t<par type=\"filterIdx\">%lu</par>\n", &anywaveIdx ) != 1 ) )
-			{
-				mp_error_msg( "MP_Anywave_Atom_c::MP_Anywave_Atom_c", "Failed to read the anywave number.\n");
-				return 1;
-			}
-			else if ( anywaveIdx >= anywaveTable->numFilters )
-			{
-				mp_error_msg( "MP_Anywave_Atom_c::MP_Anywave_Atom_c","Anywave index is bigger than the number of anywaves in the table.\n");
-				return 1;
-			}
+	if(!strcmp(str,""))
+	{
+		// Creation of a param map using the datas of the block "blockIdx"
+		map<string, string, mp_ltstring> *paramMap;
+		paramMap = dict->block[blockIdx]->get_block_parameters_map();
+		tableIdx = MPTK_Server_c::get_anywave_server()->add( paramMap );
+		anywaveTable = MPTK_Server_c::get_anywave_server()->tables[tableIdx];
+	}
+	else
+	{
+		// if the table corresponding to filename is already in the anywave server, update tableIdx and anywaveTable. If not, add the table and update tableIdx and anywaveTable
+		tableIdx = MPTK_Server_c::get_anywave_server()->add( str );
+		anywaveTable = MPTK_Server_c::get_anywave_server()->tables[tableIdx];
+	}
+
+	if ( anywaveIdx >= anywaveTable->numFilters )
+	{
+		mp_error_msg( "MP_Anywave_Atom_c::MP_Anywave_Atom_c","Anywave index is bigger than the number of anywaves in the table.\n");
+		return 1;
+	}
+
 	return 0;
 }
 
