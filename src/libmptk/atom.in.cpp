@@ -115,60 +115,86 @@ int MP_Atom_c::init_fromxml(TiXmlElement* xmlobj){
   MP_Chan_t i, iRead;
   unsigned long int val;
 
-	assert(false); // TODO
-FILE* fid = 0; // TMP TMP TMP
-
-    if ( fscanf( fid, "\t\t<par type=\"numChans\">%hu</par>\n", &numChans ) != 1 ) {
-      mp_error_msg( func, "Cannot scan numChans.\n");
-      return( 1 );
+  // First, MONOPHONIC FEATURES
+  // Iterate children and:
+  //      if item is par[type=numchans] store that
+  TiXmlNode* kid = 0;
+  TiXmlElement* kidel;
+  while(xmlobj->IterateChildren("par", kid)){
+    kidel = kid->ToElement();
+    if((kidel != NULL) && (strcmp(kidel->Attribute("type"), "numchans")==0)){
+      const char* innerText = kidel->GetText();
+      if(innerText == NULL){
+	numChans = strtol(innerText, NULL, 0);
+        if ( numChans == 0 ) {
+          mp_error_msg( func, "Cannot scan numChans.\n");
+          return( 1 );
+        }
+      }
     }
-
-  /* Allocate the storage space... */
+  }
+  // After monophonic feature grabbing, error if any needed features not filled in
+  if(numChans == 0){
+          mp_error_msg( func, "Did not detect numChans declaration while parsing the XML for this atom.\n");
+          return( 1 );
+  }
+  // Allocate the storage space
   if ( alloc_atom_param( numChans ) ) {
     mp_error_msg( func, "Failed to allocate some vectors in the new atom.\n" );
     return( 1 );
   }
 
-  /* ... and upon success, read the support and amp information */
-    /* Support */
-    for ( i=0, nItem = 0; i<numChans; i++ ) {
-      if (fscanf( fid, "\t\t<support chan=\"%hu\">", &iRead ) == 1)
-      {
-      	nItem += fscanf( fid, "<p>%u</p><l>%u</l></support>\n", &(support[i].pos), &(support[i].len) );
-      	if ( iRead != i ) 
-      	{
-			mp_warning_msg( func, "Supports may be shuffled. ""(Index \"%u\" read where \"%u\" was expected).\n", iRead, i );
-      	}
+
+  // Then, MULTICHANNEL FEATURES
+  // Iterate children and:
+  //      if item is par[type=amp][chan=x] then store that
+  kid = 0;
+  const char* datatext;
+  int count_support=0, count_amp=0;
+  while(xmlobj->IterateChildren("par", kid)){
+    kidel = kid->ToElement();
+    if(kidel != NULL){
+
+      //      if item is support[chan=x] then store that
+      if(strcmp(kidel->Value(), "support")==0){
+        ++count_support;
+        // Get the channel, and check bounds (could cause bad mem writes otherwise)
+	datatext = kidel->Attribute("chan");
+        long chan = strtol(datatext, NULL, 0);
+        if((chan<0) || (chan >= numChans)){
+            mp_error_msg( func, "Found a <support> tag with channel number %i, which is outside the channel range for this atom [0,%i).\n", chan, numChans);
+            return( 1 );
+        }
+        // Get the "p" (pos)
+	datatext = kidel->FirstChild("p")->ToElement()->GetText();
+	support[i].pos = strtol(datatext, NULL, 0);
+        // Get the "l" (len)
+	datatext = kidel->FirstChild("l")->ToElement()->GetText();
+	support[i].len = strtol(datatext, NULL, 0);
       }
-      else
-      {
-			mp_error_msg( func, "Cannot scan the channel number %i", numChans );
-      }     
-    }
-    /* Amp */
-    for (i = 0; i<numChans; i++) {
-      if ( ( fgets( str, MP_MAX_STR_LEN, fid ) == NULL  ) ||
-	   ( sscanf( str, "\t\t<par type=\"amp\" chan=\"%hu\">%lg</par>\n", &iRead,&fidAmp ) != 2 ) ) {
-	mp_error_msg( func, "Cannot scan the amplitude on channel %hu.\n", i );
-	return( 1 );
 
-      } else *(amp+i) = (MP_Real_t)fidAmp;
-
-      if ( iRead != i ) {
- 	mp_warning_msg( func, "Potential shuffle in the amplitudes"
-			" of a generic atom. (Index \"%hu\" read, \"%hu\" expected.)\n",
-			iRead, i );
+      //      if item is par[type=amp][chan=x] then store that
+      else if((strcmp(kidel->Value(), "par")==0) && (strcmp(kidel->Attribute("type"), "amp")==0)){
+        ++count_amp;
+        // Get the channel, and check bounds (could cause bad mem writes otherwise)
+	datatext = kidel->Attribute("chan");
+        long chan = strtol(datatext, NULL, 0);
+        if((chan<0) || (chan >= numChans)){
+            mp_error_msg( func, "Found a <support> tag with channel number %i, which is outside the channel range for this atom [0,%i).\n", chan, numChans);
+            return( 1 );
+        }
+	datatext = kidel->GetText();
+	amp[i] = strtod(datatext, NULL);
       }
     }
+  }
 
-  /* Check the support information */
-  if ( nItem != ( 2 * (int)( numChans ) ) ) {
-    mp_error_msg( func, "Problem while reading the supports :"
-		  " %lu read, %lu expected.\n",
-		  nItem, 2 * (int )( numChans ) );
+  if((count_amp != numChans) || (count_support != numChans)){
+    mp_error_msg( func, "Scanned an atom with %i channels, but failed to get that number of 'amp' values (%i) and 'support' declarations (%i).\n",
+		numChans, count_amp, count_support);
     return( 1 );
   }
-  
+
   /* Compute the totalChanLen and the numSamples */
   for ( i=0, totalChanLen = 0; i<numChans; i++ ) {
     val = support[i].pos + support[i].len;
