@@ -78,7 +78,7 @@ public:
 public:
 
   /** \brief Specific empty factory function */
-  static MP_Atom_c  * Template_atom_create_empty(void);
+  static MP_Atom_c  * Template_atom_create_empty(MP_Dict_c* dict);
   
   /** \brief Specific file factory function */
   static MP_Atom_c* create_fromxml( TiXmlElement *xmlobj, MP_Dict_c *dict );
@@ -87,7 +87,7 @@ public:
 protected:
 
   /* Void constructor */
-  MP_Template_Atom_Plugin_c( void );
+  MP_Template_Atom_Plugin_c( MP_Dict_c* dict );
 
   /** \brief initialisers from data */
   virtual int init_fromxml(TiXmlElement* xmlobj);

@@ -51,10 +51,10 @@
 
 /************************/
 /* Factory function     */
-MP_Atom_c* MP_Mdct_Atom_Plugin_c::mdct_atom_create_empty(void)
+MP_Atom_c* MP_Mdct_Atom_Plugin_c::mdct_atom_create_empty(MP_Dict_c* dict)
 {
 
-	return new MP_Mdct_Atom_Plugin_c;
+	return new MP_Mdct_Atom_Plugin_c(dict);
 
 }
 
@@ -67,14 +67,12 @@ MP_Atom_c* MP_Mdct_Atom_Plugin_c::create_fromxml( TiXmlElement *xmlobj, MP_Dict_
 	MP_Mdct_Atom_Plugin_c* newAtom = NULL;
 
 	/* Instantiate and check */
-	newAtom = new MP_Mdct_Atom_Plugin_c();
+	newAtom = new MP_Mdct_Atom_Plugin_c(dict);
 	if ( newAtom == NULL )
 	{
 		mp_error_msg( func, "Failed to create a new atom.\n" );
 		return( NULL );
 	}
-	if ( dict->numBlocks != 0 )
-		newAtom->dict = dict;
 
 	// Read and check
 	if ( newAtom->init_fromxml( xmlobj ) )
@@ -93,14 +91,12 @@ MP_Atom_c* MP_Mdct_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Dict_c *dict)
 	MP_Mdct_Atom_Plugin_c* newAtom = NULL;
 
 	/* Instantiate and check */
-	newAtom = new MP_Mdct_Atom_Plugin_c();
+	newAtom = new MP_Mdct_Atom_Plugin_c(dict);
 	if ( newAtom == NULL )
 	{
 		mp_error_msg( func, "Failed to create a new atom.\n" );
 		return( NULL );
 	}
-	if ( dict->numBlocks != 0 )
-		newAtom->dict = dict;
 
 	/* Read and check */
 	if ( newAtom->init_frombinary( fid ) )
@@ -116,8 +112,7 @@ MP_Atom_c* MP_Mdct_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Dict_c *dict)
 
 /********************/
 /* Void constructor */
-MP_Mdct_Atom_Plugin_c::MP_Mdct_Atom_Plugin_c( void )
-:MP_Atom_c()
+MP_Mdct_Atom_Plugin_c::MP_Mdct_Atom_Plugin_c( MP_Dict_c* dict ):MP_Atom_c(dict)
 {
 	windowType = DSP_UNKNOWN_WIN;
 	windowOption = 0.0;

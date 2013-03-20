@@ -60,9 +60,9 @@
 
 /************************/
 /* Factory function     */
-MP_Atom_c  * MP_Anywave_Hilbert_Atom_Plugin_c::anywave_hilbert_atom_create_empty(void)
+MP_Atom_c  * MP_Anywave_Hilbert_Atom_Plugin_c::anywave_hilbert_atom_create_empty(MP_Dict_c* dict)
 {
-	return new MP_Anywave_Hilbert_Atom_Plugin_c;
+	return new MP_Anywave_Hilbert_Atom_Plugin_c(dict);
 }
 
 /*************************/
@@ -73,14 +73,12 @@ MP_Atom_c* MP_Anywave_Hilbert_Atom_Plugin_c::create_fromxml( TiXmlElement *xmlob
 	MP_Anywave_Hilbert_Atom_Plugin_c* newAtom = NULL;
 
 	// Instantiate and check
-	newAtom = new MP_Anywave_Hilbert_Atom_Plugin_c();
+	newAtom = new MP_Anywave_Hilbert_Atom_Plugin_c(dict);
 	if ( newAtom == NULL )
 	{
 		mp_error_msg( func, "Failed to create a new atom.\n" );
 		return( NULL );
 	}
-	if ( dict->numBlocks != 0 )
-		newAtom->dict = dict;
 
 	// Read and check
 	if ( newAtom->init_fromxml( xmlobj ) )
@@ -98,14 +96,12 @@ MP_Atom_c* MP_Anywave_Hilbert_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Di
 	MP_Anywave_Hilbert_Atom_Plugin_c* newAtom = NULL;
 
 	// Instantiate and check
-	newAtom = new MP_Anywave_Hilbert_Atom_Plugin_c();
+	newAtom = new MP_Anywave_Hilbert_Atom_Plugin_c(dict);
 	if ( newAtom == NULL )
 	{
 		mp_error_msg( func, "Failed to create a new atom.\n" );
 		return( NULL );
 	}
-	if ( dict->numBlocks != 0 )
-		newAtom->dict = dict;
 
 	// Read and check
 	if ( newAtom->init_frombinary( fid ) )
@@ -119,7 +115,7 @@ MP_Atom_c* MP_Anywave_Hilbert_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Di
 
 /********************/
 /* Void constructor */
-MP_Anywave_Hilbert_Atom_Plugin_c::MP_Anywave_Hilbert_Atom_Plugin_c( void ):MP_Anywave_Atom_Plugin_c()
+MP_Anywave_Hilbert_Atom_Plugin_c::MP_Anywave_Hilbert_Atom_Plugin_c( MP_Dict_c* dict ):MP_Anywave_Atom_Plugin_c(dict)
 {
 	realPart = NULL;
 	hilbertPart = NULL;

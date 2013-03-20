@@ -45,8 +45,16 @@ MP_Signal_c* mp_create_signal_from_numpyarray(const PyArrayObject *nparray){
 // Moved mptk_decompose into the main .cpp, since I think it needs to be in the same compiled object file in order not to crash on import_array() issues.
 // The implementation of the main number-crunching calls goes here though.
 
-int
-mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, const int samplerate, const unsigned long int numiters, const float snr, const char *method, const char* decaypath, const char* bookpath, mptk_decompose_result& result){
+int mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, const int samplerate, const unsigned long int numiters, const float snr, const char *method, const char* decaypath, const char* bookpath,
+	unsigned long int cmpd_maxnum_cycles,
+	double            cpmd_min_cycleimprovedb,
+	unsigned long int cpmd_maxnum_aug_beforecycle,
+	double            cpmd_maxnum_aug_beforecycle_db,
+	unsigned long int cpmd_max_aud_stopcycle,
+	double            cpmd_max_db_stopcycle,
+	int cmpd_hold,
+	mptk_decompose_result& result)
+{
 	// book, residual = mptk.decompose(sig, dictpath, samplerate, [ snr=0.5, numiters=10, method='mp', ... ])
 
 	////////////////////////////////////////////////////////////
@@ -79,14 +87,14 @@ mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, cons
 	    return 3;
 	}
 	MP_Abstract_Core_c *mpdCore;
-	if(strstr(method, "")==0 || strstr(method, "mp")==0){
+	if(strcmp(method, "")==0 || strcmp(method, "mp")==0){
 		mpdCore =  MP_Mpd_Core_c::create( signal, mpbook, dict );
-	}else if(strstr(method, "cmp")==0){
+	}else if(strcmp(method, "cmp")==0){
 		mpdCore =  MP_CMpd_Core_c::create( signal, mpbook, dict );
-	//}else if(strstr(method, "gmp")==0){
+	//}else if(strcmp(method, "gmp")==0){
 	//	mpdCore =  GPD_Core_c::create( signal, mpbook, dict );
 	}else{
-		printf("Unrecognised 'method' option '%s'. Recognised options are: mp, cmp, gmp\n");
+		printf("Unrecognised 'method' option '%s'. Recognised options are: mp, cmp, gmp\n", method);
 		delete signal;
 		delete dict;
 		delete mpbook;
@@ -107,11 +115,14 @@ mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, cons
 	}else{
 		mpdCore->set_snr_condition( snr );
 	}
-	if(strstr(method, "")==0 || strstr(method, "mp")==0){
+	if(strcmp(method, "")==0 || strcmp(method, "mp")==0){
 		((MP_Mpd_Core_c*) mpdCore)->set_save_hit(ULONG_MAX, bookpath, NULL, decaypath);
-	}else if(strstr(method, "cmp")==0){
+	}else if(strcmp(method, "cmp")==0){
 		((MP_CMpd_Core_c*) mpdCore)->set_save_hit(ULONG_MAX, bookpath, NULL, decaypath);
-	}//else if(strstr(method, "gmp")==0){
+		((MP_CMpd_Core_c*) mpdCore)->set_settings( 		cmpd_maxnum_cycles, cpmd_min_cycleimprovedb, cpmd_maxnum_aug_beforecycle,
+		cpmd_maxnum_aug_beforecycle_db, cpmd_max_aud_stopcycle, cpmd_max_db_stopcycle, cmpd_hold > 0 );
+
+	}//else if(strcmp(method, "gmp")==0){
 		// not same method... ((GPD_Core_c*) mpdCore)->set_save_hit(ULONG_MAX, bookpath, NULL, decaypath);
 	//}
 	mpdCore->set_report_hit(reportHit);

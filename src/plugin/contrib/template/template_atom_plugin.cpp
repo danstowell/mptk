@@ -63,14 +63,12 @@ MP_Atom_c* MP_Template_Atom_Plugin_c::create_fromxml( TiXmlElement *xmlobj, MP_D
 
 
   /* Instantiate and check */
-  newAtom = new MP_Template_Atom_Plugin_c();
+  newAtom = new MP_Template_Atom_Plugin_c(dict);
   if ( newAtom == NULL )
     {
       mp_error_msg( func, "Failed to create a new Template atom.\n" );
       return( NULL );
     }
- 	if ( dict->numBlocks != 0 )
-		newAtom->dict = dict;
 
 	// Read and check
 	if ( newAtom->init_fromxml( xmlobj ) )
@@ -90,30 +88,26 @@ MP_Atom_c* MP_Template_Atom_Plugin_c::create_frombinary( FILE *fid, MP_Dict_c *d
 
 
   /* Instantiate and check */
-  newAtom = new MP_Template_Atom_Plugin_c();
+  newAtom = new MP_Template_Atom_Plugin_c(dict);
   if ( newAtom == NULL )
     {
       mp_error_msg( func, "Failed to create a new Template atom.\n" );
       return( NULL );
     }
- 	if ( dict->numBlocks != 0 )
-		newAtom->dict = dict;
 
   return( (MP_Atom_c*)newAtom );
 }
 
-MP_Atom_c* MP_Template_Atom_Plugin_c::template_atom_create_empty(void)
+MP_Atom_c* MP_Template_Atom_Plugin_c::template_atom_create_empty(MP_Dict_c* dict)
     {
 mp_error_msg( "MP_Template_Atom_Plugin_c::Template_atom_create_empty", "create a new Template atom.\n" );
-      return new MP_Template_Atom_Plugin_c;
+      return new MP_Template_Atom_Plugin_c(dict);
 
     }
 /********************/
 /* Void constructor */
-MP_Template_Atom_Plugin_c::MP_Template_Atom_Plugin_c( void )
-    :MP_Atom_c(){
-  mp_error_msg( "MP_Template_Atom_Plugin_c::MP_Template_Atom_Plugin_c", "create a new Template atom.\n" );  
-    }
+MP_Template_Atom_Plugin_c::MP_Template_Atom_Plugin_c( MP_Dict_c* dict ):MP_Atom_c(dict){
+}
 
 /********************/
 /* File reader      */

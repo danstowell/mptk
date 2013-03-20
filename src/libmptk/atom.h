@@ -170,8 +170,8 @@ class MP_Atom_c
 	/* CONSTRUCTORS/DESTRUCTOR */
 	/***************************/
 	protected:
-		/** \brief a constructor which initializes everything to zero or NULL */
-		MPTK_LIB_EXPORT MP_Atom_c( void );
+		/** \brief a constructor which initializes everything to zero or NULL, except the dict */
+		MPTK_LIB_EXPORT MP_Atom_c( MP_Dict_c* dict );
 		/** \brief initialisers from data */
 		MPTK_LIB_EXPORT virtual int init_fromxml(TiXmlElement* xmlobj);
 		MPTK_LIB_EXPORT virtual int init_frombinary( FILE *fid );

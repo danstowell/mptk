@@ -83,7 +83,7 @@ MP_Atom_Factory_c::~MP_Atom_Factory_c()
 /***************************/
 
 /* Method to obtain a create function for empty atom */
-MP_Atom_c*(*MP_Atom_Factory_c::get_empty_atom_creator( const char* atomName ))(void)
+MP_Atom_c*(*MP_Atom_Factory_c::get_empty_atom_creator( const char* atomName ))(MP_Dict_c* dict)
 {
 
   return  MP_Atom_Factory_c::get_atom_factory()->atom_empty[atomName];
@@ -123,7 +123,7 @@ void MP_Atom_Factory_c::register_new_atom(const char* nameplug,
 }
 
 /* Register new Atom create function in the hash map */
-void MP_Atom_Factory_c::register_new_atom_empty(const char* nameplug, MP_Atom_c*(*createEmptyAtomFunctionPointer)( void ))
+void MP_Atom_Factory_c::register_new_atom_empty(const char* nameplug, MP_Atom_c*(*createEmptyAtomFunctionPointer)( MP_Dict_c* dict ))
 {
   const char *func = "MP_Atom_Factory_c::register_new_atom_empty()";
   if  (NULL == MP_Atom_Factory_c::get_atom_factory()->atom_empty[nameplug])
@@ -139,7 +139,7 @@ void MP_Atom_Factory_c::register_new_atom_empty(const char* nameplug, MP_Atom_c*
 /* fill a vector with the name of the atoms registred in atom factory */
 void MP_Atom_Factory_c::get_registered_atom_name( vector< string >* nameVector ){
 	const char *func = "MP_Atom_Factory_c::get_registered_atom_name()";
-	map<const char*, MP_Atom_c*(*)(void),mp_ltstring>::iterator iter;
+	map<const char*, MP_Atom_c*(*)(MP_Dict_c* dict),mp_ltstring>::iterator iter;
 	for( iter = MP_Atom_Factory_c::atom_empty.begin(); iter != MP_Atom_Factory_c::atom_empty.end(); iter++ ) {
 		if(NULL!=iter->first) {
 			nameVector->push_back(string(iter->first));
@@ -154,7 +154,7 @@ void MP_Atom_Factory_c::get_registered_atom_name( vector< string >* nameVector )
 void MP_Atom_Factory_c::get_registered_atom_names( char **atomNames ){
 	int iIndex = 0;
 	const char *func = "MP_Atom_Factory_c::get_registered_atom_names()";
-	map<const char*, MP_Atom_c*(*)(void),mp_ltstring>::iterator iter;
+	map<const char*, MP_Atom_c*(*)(MP_Dict_c* dict),mp_ltstring>::iterator iter;
 
 	for(iter = MP_Atom_Factory_c::atom_empty.begin(); iter != MP_Atom_Factory_c::atom_empty.end(); iter++) 
 	{
@@ -170,4 +170,4 @@ void MP_Atom_Factory_c::get_registered_atom_names( char **atomNames ){
 /* Returns the size of the atom vector */
 int MP_Atom_Factory_c::get_atom_size( void ){
 	return (int)MP_Atom_Factory_c::atom_empty.size();
-}	 
+}
