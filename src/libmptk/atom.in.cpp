@@ -121,7 +121,7 @@ int MP_Atom_c::init_fromxml(TiXmlElement* xmlobj){
   while((kid = xmlobj->IterateChildren("par", kid))){
     kidel = kid->ToElement();
     if(kidel != NULL){
-      if(strcmp(kidel->Attribute("type"), "numchans")==0){
+      if(strcmp(kidel->Attribute("type"), "numChans")==0){
         datatext = kidel->GetText();
         if(datatext != NULL){
           numChans = strtol(datatext, NULL, 0);
@@ -150,7 +150,7 @@ int MP_Atom_c::init_fromxml(TiXmlElement* xmlobj){
   //      if item is par[type=amp][chan=x] then store that
   kid = 0;
   int count_support=0, count_amp=0;
-  while((kid = xmlobj->IterateChildren("par", kid))){
+  while((kid = xmlobj->IterateChildren(kid))){
     kidel = kid->ToElement();
     if(kidel != NULL){
 

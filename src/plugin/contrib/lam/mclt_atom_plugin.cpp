@@ -178,11 +178,11 @@ int MP_Mclt_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
       if(strcmp(kidel->Value(), "window")==0){
         datatext = kidel->Attribute("type");
         if(datatext != NULL){
-	  windowOption = strtod(datatext, NULL);
+	  windowType=window_type(datatext);
         }
         datatext = kidel->Attribute("opt");
         if(datatext != NULL){
-	  windowType=window_type(datatext);
+	  windowOption = strtod(datatext, NULL);
         }
       }
       // par[type=freq]
@@ -196,17 +196,17 @@ int MP_Mclt_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
   }
 
   if(windowType == DSP_UNKNOWN_WIN){
-    mp_error_msg( func, "Failed to read the window type and/or option in a Gabor atom structure.\n");
+    mp_error_msg( func, "Failed to read the window type and/or option in an MCLT atom structure.\n");
     return( 1 );
   }
 
   // Now the multichannel stuff - for each mcltPar[chan=x], we expect a single par[type=phase] element
   kid = 0;
   int count_phase=0;
-  while((kid = xmlobj->IterateChildren("mcltPar", kid))){
+  while((kid = xmlobj->IterateChildren("McltPar", kid))){
     long chan = strtol(kid->ToElement()->Attribute("chan"), NULL, 0);
     if((chan<0) || (chan >= numChans)){
-        mp_error_msg( func, "Found a <mcltPar> tag with channel number %i, which is outside the channel range for this atom [0,%i).\n", chan, numChans);
+        mp_error_msg( func, "Found a <McltPar> tag with channel number %i, which is outside the channel range for this atom [0,%i).\n", chan, numChans);
         return( 1 );
     }
     kidel = kid->FirstChild("par")->ToElement(); // NOTE: this line here assumes there's only one <par> kid. If extending this plugin, it would have to change.
@@ -215,6 +215,9 @@ int MP_Mclt_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
         // Get the channel, and check bounds (could cause bad mem writes otherwise)
 	datatext = kidel->GetText();
 	phase[chan] = strtod(datatext, NULL);
+    }else{
+        mp_error_msg( func, "Found a <McltPar> tag no <par> child element - malformed xml.\n");
+        return( 1 );
     }
   }
 

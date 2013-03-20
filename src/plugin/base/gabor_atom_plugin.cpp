@@ -173,12 +173,12 @@ int MP_Gabor_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
       if(strcmp(kidel->Value(), "window")==0){
         datatext = kidel->Attribute("type");
         if(datatext != NULL){
-	  windowOption = strtod(datatext, NULL);
+	  windowType = window_type(datatext);
         }
         else{ mp_error_msg(func, "datatext==NULL in window[type]\n"); return 1; }
         datatext = kidel->Attribute("opt");
         if(datatext != NULL){
-	  windowType=window_type(datatext);
+	  windowOption = strtod(datatext, NULL);
         }
         else{ mp_error_msg(func, "datatext==NULL in window[opt]\n"); return 1; }
       }

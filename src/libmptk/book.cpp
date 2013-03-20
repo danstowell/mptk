@@ -373,7 +373,7 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 		memset(szBuffer, 0, bufferavail);
 		do
 		{
-			if ( fgets( line,MP_MAX_STR_LEN,fid) == NULL ) 
+			if ( fgets( line, MP_MAX_STR_LEN, fid) == NULL ) 
 			{
 				mp_error_msg( func, "Error reading XML data from file.\n" );
 				return 0;
@@ -386,7 +386,7 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 			strcat(szBuffer,line);
 			bufferavail -= strlen(line);
 		}
-		while(strcmp(line,"</dict>\n"));
+		while(strstr(line,"</book>\n") == NULL);  // NB this is still not quite "proper" XML parsing, since wants </book> on own line
 
 		// parse the xml
 		TiXmlDocument doc;
@@ -415,9 +415,10 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 			mp_error_msg( func, "Cannot find 'nAtom' attribute in the book header. This book will remain un-changed.\n" );
 			return( 0 );
 		}
-		else if(sscanf( str, "%lu", &fidNumAtoms ) != 1 )
+		fidNumAtoms = strtol(str_nAtom, NULL, 0);
+		if(fidNumAtoms == 0)
 		{
-			mp_error_msg( func, "Cannot scan the book header. This book will remain un-changed.\n" );
+			mp_error_msg( func, "nAtom is 0. This book will remain un-changed.\n" );
 			return( 0 );
 		}
 		const char* str_numChans = elementBook->Attribute("numChans");
@@ -425,9 +426,10 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 			mp_error_msg( func, "Cannot find 'numChans' attribute in the book header. This book will remain un-changed.\n" );
 			return( 0 );
 		}
-		else if(sscanf( str, "%u", &fidNumChans ) != 1 )
+		fidNumChans = strtol(str_numChans, NULL, 0);
+		if(fidNumChans == 0)
 		{
-			mp_error_msg( func, "Cannot scan the book header. This book will remain un-changed.\n" );
+			mp_error_msg( func, "numChans is 0. This book will remain un-changed.\n" );
 			return( 0 );
 		}
 		const char* str_numSamples = elementBook->Attribute("numSamples");
@@ -435,9 +437,10 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 			mp_error_msg( func, "Cannot find 'numSamples' attribute in the book header. This book will remain un-changed.\n" );
 			return( 0 );
 		}
-		else if(sscanf( str, "%lu", &fidNumSamples ) != 1 )
+		fidNumSamples = strtol(str_numSamples, NULL, 0);
+		if(fidNumSamples == 0)
 		{
-			mp_error_msg( func, "Cannot scan the book header. This book will remain un-changed.\n" );
+			mp_error_msg( func, "numSamples is 0. This book will remain un-changed.\n" );
 			return( 0 );
 		}
 		if(elementBook->QueryIntAttribute("sampleRate", &fidSampleRate) != TIXML_SUCCESS){
@@ -473,6 +476,13 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 				}else{
 					mp_error_msg( func, "Cannot read atoms of type '%s'\n",str_type);
 				}
+				if ( newAtom == NULL )  
+					mp_error_msg( func, "Failed to create an atom of type[%s].\n", str);
+				else 
+				{ 
+					append( newAtom ); 
+					++nRead;
+				}
 		}
 	} else if ( mode == MP_BINARY){
 		// Read the header
@@ -502,7 +512,7 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 			else 
 			{ 
 				append( newAtom ); 
-				nRead++; 
+				++nRead;
 			}
 		}
 	}else{
@@ -532,10 +542,6 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 
 	sampleRate = fidSampleRate;
 
-	// Read the terminating </book> tag
-	if ( ( fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) || ( strcmp( line, "</book>\n" ) ) )
-		mp_warning_msg( func, "Could not find the </book> tag. (%lu atoms added, %lu atoms expected.)\n", nRead, fidNumAtoms );
-	
   return( nRead );
 }
 

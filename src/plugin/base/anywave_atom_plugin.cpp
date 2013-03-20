@@ -121,7 +121,7 @@ MP_Anywave_Atom_Plugin_c::MP_Anywave_Atom_Plugin_c( MP_Dict_c* dict ):MP_Atom_c(
 int MP_Anywave_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
 {
 	const char* func = "MP_Anywave_Atom_c::read(fid,mode)";
-	char str[MP_MAX_STR_LEN];
+	char str[MP_MAX_STR_LEN] = "";
 
 	// Go up one level
 	if ( MP_Atom_c::init_fromxml( xmlobj ) )
@@ -138,7 +138,7 @@ int MP_Anywave_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
 		kidel = kid->ToElement();
 		if(kidel != NULL){
 			// par[type=filename] contains string (put it in "str")
-			if((strcmp(kidel->Value(), "par")==0) && (strcmp(kidel->Attribute("type"), "blockIdx")==0)){
+			if((strcmp(kidel->Value(), "par")==0) && (strcmp(kidel->Attribute("type"), "filename")==0)){
 				datatext = kidel->GetText();
 				if(datatext != NULL){
 					strncpy(str, datatext, MP_MAX_STR_LEN-1);

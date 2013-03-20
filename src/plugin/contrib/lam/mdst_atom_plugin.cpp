@@ -150,11 +150,11 @@ int MP_Mdst_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
       if(strcmp(kidel->Value(), "window")==0){
         datatext = kidel->Attribute("type");
         if(datatext != NULL){
-	  windowOption = strtod(datatext, NULL);
+	  windowType=window_type(datatext);
         }
         datatext = kidel->Attribute("opt");
         if(datatext != NULL){
-	  windowType=window_type(datatext);
+	  windowOption = strtod(datatext, NULL);
         }
       }
       // par[type=freq]
@@ -168,7 +168,7 @@ int MP_Mdst_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
   }
 
   if(windowType == DSP_UNKNOWN_WIN){
-    mp_error_msg( func, "Failed to read the window type and/or option in a Gabor atom structure.\n");
+    mp_error_msg( func, "Failed to read the window type and/or option in a MDST atom structure.\n");
     return( 1 );
   }
 

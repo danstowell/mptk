@@ -237,7 +237,7 @@ int MP_Harmonic_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
   // Then, MULTICHANNEL FEATURES
   // Iterate children and:
   kid = 0;
-  int count_harm=0, count_pamp=0, count_pphase;
+  int count_harm=0, count_pamp=0, count_pphase=0;
   while((kid = xmlobj->IterateChildren(kid))){
     kidel = kid->ToElement();
     if(kidel != NULL){
