@@ -363,17 +363,26 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 	if(!strcmp(line,"txt\n"))
 		mode = MP_TEXT;
 
+	// Read the header
+	if ( ( fgets( line,MP_MAX_STR_LEN,fid) == NULL ) || (sscanf( line, "<book nAtom=\"%lu\" numChans=\"%d\" numSamples=\"%lu\" sampleRate=\"%d\" libVersion=\"%[0-9a-z.]\">\n", &fidNumAtoms, &fidNumChans, &fidNumSamples, &fidSampleRate, str ) != 5 )) 
+	{
+		mp_error_msg( func, "Cannot scan the book header. This book will remain un-changed.\n" );
+		return( 0 );
+	}
+
 	// Read the atoms
-	MP_Atom_c* (*createAtomFromXml)( TiXmlElement *xmlobj, MP_Dict_c *dict);
-	MP_Atom_c* (*createAtomFromBinary)( FILE *fid, MP_Dict_c *dict);
 	if ( mode == MP_TEXT){  // using if rather than switch, so can declare variables inside
+		MP_Atom_c* (*createAtomFromXml)( TiXmlElement *xmlobj, MP_Dict_c *dict);
 		// read some xml into memory
-		size_t xmlBufSize = 1000000;
-		size_t bytesremain = xmlBufSize;
+		size_t xmlBufSize = 100000;
 		char szBuffer[xmlBufSize];
+		size_t bytesremain;
+		// Reset the buffer for each atom
+		bytesremain = xmlBufSize;
 		memset(szBuffer, 0, xmlBufSize);
 		do
 		{
+			// Then attempt to read one <atom>...</atom> block
 			if ( fgets( line, MP_MAX_STR_LEN, fid) == NULL ) 
 			{
 				mp_error_msg( func, "Error reading XML data from file.\n" );
@@ -381,85 +390,30 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 			}
 			if ( strlen(line) > bytesremain )
 			{
-				mp_error_msg( func, "XML data for <book> is larger than the in-memory buffer (size %lu bytes), cannot load.\n", xmlBufSize);
+				mp_error_msg( func, "XML data for <atom> is larger than the in-memory buffer (size %lu bytes), cannot load.\n", xmlBufSize);
 				return 0;
 			}
 			strcat(szBuffer,line);
 			bytesremain -= strlen(line);
-		}
-		while(strstr(line,"</book>\n") == NULL);  // NB this is still not quite "proper" XML parsing, since wants </book> on own line
 
-		// parse the xml
-		TiXmlDocument doc;
-		if (!doc.Parse(szBuffer))
-		{
-			mp_error_msg( func, "Error while loading the XML <book> data:\n");
-			mp_error_msg( func, "Error ID: %u .\n", doc.ErrorId() );
-			mp_error_msg( func, "Error description: %s .\n", doc.ErrorDesc());
-			return  0;
-		}
-
-		// Get a handle on the document
-		TiXmlHandle hdl(&doc);
-
-		// Get a handle on the tags "book"
-		TiXmlElement *elementBook = hdl.FirstChildElement("book").Element();
-		if (elementBook == NULL)
-		{
-			mp_error_msg( func, "Error, cannot find the xml property :\"book\".\n");
-			return 0;
-		}
-
-		// Get the book tag's properties
-		const char* str_nAtom = elementBook->Attribute("nAtom");
-		if(str_nAtom==NULL){
-			mp_error_msg( func, "Cannot find 'nAtom' attribute in the book header. This book will remain un-changed.\n" );
-			return( 0 );
-		}
-		fidNumAtoms = strtol(str_nAtom, NULL, 0);
-		if(fidNumAtoms == 0)
-		{
-			mp_error_msg( func, "nAtom is 0. This book will remain un-changed.\n" );
-			return( 0 );
-		}
-		const char* str_numChans = elementBook->Attribute("numChans");
-		if(str_numChans==NULL){
-			mp_error_msg( func, "Cannot find 'numChans' attribute in the book header. This book will remain un-changed.\n" );
-			return( 0 );
-		}
-		fidNumChans = strtol(str_numChans, NULL, 0);
-		if(fidNumChans == 0)
-		{
-			mp_error_msg( func, "numChans is 0. This book will remain un-changed.\n" );
-			return( 0 );
-		}
-		const char* str_numSamples = elementBook->Attribute("numSamples");
-		if(str_numSamples==NULL){
-			mp_error_msg( func, "Cannot find 'numSamples' attribute in the book header. This book will remain un-changed.\n" );
-			return( 0 );
-		}
-		fidNumSamples = strtol(str_numSamples, NULL, 0);
-		if(fidNumSamples == 0)
-		{
-			mp_error_msg( func, "numSamples is 0. This book will remain un-changed.\n" );
-			return( 0 );
-		}
-		if(elementBook->QueryIntAttribute("sampleRate", &fidSampleRate) != TIXML_SUCCESS){
-			mp_error_msg( func, "Cannot find 'sampleRate' attribute in the book header. This book will remain un-changed.\n" );
-			return( 0 );
-		}
-
-		// Iterate over the parsed atoms
-		TiXmlNode* atomNode = 0;
-		while( atomNode = elementBook->IterateChildren( atomNode ) ){
-				TiXmlElement* atomElement = atomNode->ToElement();
+			// If we've ended an atom, then parse the atom xml
+			// NB this is still not quite "proper" XML parsing, since wants </atom> on own line, but streaming is important
+			if(strstr(line,"</atom>")){
+				TiXmlDocument doc;
+				if (!doc.Parse(szBuffer))
+				{
+					mp_error_msg( func, "Error while loading the XML <atom> data into tinyxml:\n");
+					mp_error_msg( func, "Error ID: %u .\n", doc.ErrorId() );
+					mp_error_msg( func, "Error description: %s .\n", doc.ErrorDesc());
+					return  0;
+				}
+				// Get a handle on the document
+				TiXmlHandle hdl(&doc);
+				// Get a handle on the tag "atom"
+				TiXmlElement *atomElement = hdl.FirstChildElement("atom").Element();
 				if (atomElement == NULL)
 				{
-					continue; // It's OK to find non-Element children (eg comments), but we don't care about them
-				}
-
-				if(strcmp(atomElement->Value(), "atom") != 0){
-					mp_error_msg( func, "While scanning book XML, child element should have been <atom> - found <%s>\n", atomElement->Value());
+					mp_error_msg( func, "Error, cannot find the xml property :\"atom\".\n");
 					return 0;
 				}
 
@@ -484,14 +438,15 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 					append( newAtom ); 
 					++nRead;
 				}
+				// Reset the text buffer for each atom
+				bytesremain = xmlBufSize;
+				memset(szBuffer, 0, xmlBufSize);
+			}
 		}
+		while(strstr(line,"</book>") == 0);  // NB this is still not quite "proper" XML parsing, since wants </book> on own line, but streaming is important
+
 	} else if ( mode == MP_BINARY){
-		// Read the header
-		if ( ( fgets( line,MP_MAX_STR_LEN,fid) == NULL ) || (sscanf( line, "<book nAtom=\"%lu\" numChans=\"%d\" numSamples=\"%lu\" sampleRate=\"%d\" libVersion=\"%[0-9a-z.]\">\n", &fidNumAtoms, &fidNumChans, &fidNumSamples, &fidSampleRate, str ) != 5 )) 
-		{
-			mp_error_msg( func, "Cannot scan the book header. This book will remain un-changed.\n" );
-			return( 0 );
-		}
+		MP_Atom_c* (*createAtomFromBinary)( FILE *fid, MP_Dict_c *dict);
 		for ( i=0; i<fidNumAtoms; i++ )
 		{
 			if ( (  fgets( line, MP_MAX_STR_LEN, fid ) == NULL ) ||( sscanf( line, "%[a-z]\n", str ) != 1 ) ) 
