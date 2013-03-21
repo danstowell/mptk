@@ -144,10 +144,8 @@ int mptk_decompose_body(const PyArrayObject *numpysignal, const char *dictpath, 
 
 	// Get results - book, residual, decay. as a first pass, maybe we should write the book to disk, return the residual, ignore the decay (useDecay=false).
 
-	// write book XML to disk.
-	if(bookpath!=NULL && bookpath[0] != NULL){
-		mpdCore->save_result();
-	}
+	// write book XML and/or decay data to disk.
+	mpdCore->save_result();
 
 	// create python book object, which will be returned
 	BookObject* thebook = (BookObject*)PyObject_CallObject((PyObject *) &bookType, NULL);
