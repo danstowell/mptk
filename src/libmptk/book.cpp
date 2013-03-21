@@ -368,9 +368,10 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 	MP_Atom_c* (*createAtomFromBinary)( FILE *fid, MP_Dict_c *dict);
 	if ( mode == MP_TEXT){  // using if rather than switch, so can declare variables inside
 		// read some xml into memory
-		size_t bufferavail = 100000; // TODO big enough?
-		char szBuffer[bufferavail];
-		memset(szBuffer, 0, bufferavail);
+		size_t xmlBufSize = 1000000;
+		size_t bytesremain = xmlBufSize;
+		char szBuffer[xmlBufSize];
+		memset(szBuffer, 0, xmlBufSize);
 		do
 		{
 			if ( fgets( line, MP_MAX_STR_LEN, fid) == NULL ) 
@@ -378,13 +379,13 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 				mp_error_msg( func, "Error reading XML data from file.\n" );
 				return 0;
 			}
-			if ( strlen(line) > bufferavail )
+			if ( strlen(line) > bytesremain )
 			{
-				mp_error_msg( func, "XML data for <book> is larger than the in-memory buffer, cannot load.\n" );
+				mp_error_msg( func, "XML data for <book> is larger than the in-memory buffer (size %lu bytes), cannot load.\n", xmlBufSize);
 				return 0;
 			}
 			strcat(szBuffer,line);
-			bufferavail -= strlen(line);
+			bytesremain -= strlen(line);
 		}
 		while(strstr(line,"</book>\n") == NULL);  // NB this is still not quite "proper" XML parsing, since wants </book> on own line
 
