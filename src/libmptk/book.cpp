@@ -368,22 +368,20 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 	MP_Atom_c* (*createAtomFromBinary)( FILE *fid, MP_Dict_c *dict);
 	if ( mode == MP_TEXT){  // using if rather than switch, so can declare variables inside
 		// read some xml into memory
-		size_t xmlBufSize = 10 * 1024 * 1024;
+		size_t xmlBufSize = 1000000;
 		size_t bytesremain = xmlBufSize;
-		char* szBuffer = (char*)malloc(xmlBufSize);
+		char szBuffer[xmlBufSize];
 		memset(szBuffer, 0, xmlBufSize);
 		do
 		{
 			if ( fgets( line, MP_MAX_STR_LEN, fid) == NULL ) 
 			{
 				mp_error_msg( func, "Error reading XML data from file.\n" );
-				free(szBuffer);
 				return 0;
 			}
 			if ( strlen(line) > bytesremain )
 			{
-				mp_error_msg( func, "XML data for <book> is larger than the in-memory buffer (size %lu MB), cannot load.\n", xmlBufSize / (1024 * 1024));
-				free(szBuffer);
+				mp_error_msg( func, "XML data for <book> is larger than the in-memory buffer (size %lu bytes), cannot load.\n", xmlBufSize);
 				return 0;
 			}
 			strcat(szBuffer,line);
@@ -398,10 +396,8 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 			mp_error_msg( func, "Error while loading the XML <book> data:\n");
 			mp_error_msg( func, "Error ID: %u .\n", doc.ErrorId() );
 			mp_error_msg( func, "Error description: %s .\n", doc.ErrorDesc());
-			free(szBuffer);
 			return  0;
 		}
-		free(szBuffer);
 
 		// Get a handle on the document
 		TiXmlHandle hdl(&doc);
