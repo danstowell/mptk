@@ -111,8 +111,6 @@ int MP_Atom_c::init_fromxml(TiXmlElement* xmlobj){
   const char *func = "MP_Atom_c::init_fromxml(TiXmlElement* xmlobj)";
   int nItem = 0;
   char str[MP_MAX_STR_LEN];
-  double fidAmp;
-  unsigned long int val;
 
   // First, MONOPHONIC FEATURES
   // Iterate children and:
@@ -197,7 +195,9 @@ int MP_Atom_c::init_fromxml(TiXmlElement* xmlobj){
   }
 
   /* Compute the totalChanLen and the numSamples */
-  for (long i=0, totalChanLen = 0; i<numChans; i++ ) {
+  unsigned long int val;
+  totalChanLen = 0;
+  for (long i=0; i<numChans; ++i ) {
     val = support[i].pos + support[i].len;
     if (numSamples < val ) numSamples = val;
     totalChanLen += support[i].len;
@@ -250,7 +250,8 @@ int MP_Atom_c::init_frombinary( FILE *fid ) {
   }
   
   /* Compute the totalChanLen and the numSamples */
-  for ( i=0, totalChanLen = 0; i<numChans; i++ ) {
+  totalChanLen = 0;
+  for ( i=0; i<numChans; i++ ) {
     val = support[i].pos + support[i].len;
     if (numSamples < val ) numSamples = val;
     totalChanLen += support[i].len;
@@ -369,19 +370,12 @@ void MP_Atom_c::substract_add( MP_Signal_c *sigSub, MP_Signal_c *sigAdd ) {
 
 
   // (Re)allocating
-  if (NULL == totalBuffer || allocated_totalChanLen != totalChanLen) {
-    if (NULL != totalBuffer) {
-      free(totalBuffer);
-      totalBuffer = NULL;
-      allocated_totalChanLen = 0;
-    }
-    totalBuffer = (MP_Real_t*) malloc (totalChanLen*sizeof(MP_Real_t)) ;
-    if(NULL==totalBuffer) {
-      mp_error_msg(func,"Could not allocate buffer. Returning without any addition or subtraction.\n" );
-      return;
-    }
-    allocated_totalChanLen = totalChanLen;
+  totalBuffer = (MP_Real_t*) malloc (totalChanLen*sizeof(MP_Real_t)) ;
+  if(NULL==totalBuffer) {
+    mp_error_msg(func,"Could not allocate buffer. Returning without any addition or subtraction.\n" );
+    return;
   }
+  allocated_totalChanLen = totalChanLen;
   // build the atom waveform 
   build_waveform(totalBuffer);
 

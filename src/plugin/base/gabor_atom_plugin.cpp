@@ -175,10 +175,12 @@ int MP_Gabor_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
         if(datatext != NULL){
 	  windowOption = strtod(datatext, NULL);
         }
+        else{ mp_error_msg(func, "datatext==NULL in window[type]\n"); return 1; }
         datatext = kidel->Attribute("opt");
         if(datatext != NULL){
 	  windowType=window_type(datatext);
         }
+        else{ mp_error_msg(func, "datatext==NULL in window[opt]\n"); return 1; }
       }
       // par[type=freq]
       if((strcmp(kidel->Value(), "par")==0) && (strcmp(kidel->Attribute("type"), "freq")==0)){
@@ -186,6 +188,7 @@ int MP_Gabor_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
         if(datatext != NULL){
 	  freq = strtod(datatext, NULL);
         }
+        else{ mp_error_msg(func, "datatext==NULL in freq\n"); return 1; }
       }
       // par[type=chirp]
       if((strcmp(kidel->Value(), "par")==0) && (strcmp(kidel->Attribute("type"), "chirp")==0)){
@@ -193,6 +196,7 @@ int MP_Gabor_Atom_Plugin_c::init_fromxml(TiXmlElement* xmlobj)
         if(datatext != NULL){
 	  chirp = strtod(datatext, NULL);
         }
+        else{ mp_error_msg(func, "datatext==NULL in chirp\n"); return 1; }
       }
     }
   }

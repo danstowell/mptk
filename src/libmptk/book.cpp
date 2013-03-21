@@ -337,7 +337,9 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 	unsigned long int		nRead = 0;
 	char					mode;
 	char					line[MP_MAX_STR_LEN];
+	memset(line, 0, MP_MAX_STR_LEN);
 	char					str[MP_MAX_STR_LEN];
+	memset(str, 0, MP_MAX_STR_LEN);
 	MP_Atom_c				*newAtom = NULL;
 	MP_Dict_c				*dict;
 
@@ -366,9 +368,9 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 	MP_Atom_c* (*createAtomFromBinary)( FILE *fid, MP_Dict_c *dict);
 	if ( mode == MP_TEXT){  // using if rather than switch, so can declare variables inside
 		// read some xml into memory
-		char line[MP_MAX_STR_LEN];
 		size_t bufferavail = 100000; // TODO big enough?
 		char szBuffer[bufferavail];
+		memset(szBuffer, 0, bufferavail);
 		do
 		{
 			if ( fgets( line,MP_MAX_STR_LEN,fid) == NULL ) 

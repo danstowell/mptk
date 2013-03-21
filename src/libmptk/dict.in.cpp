@@ -336,14 +336,16 @@ int MP_Dict_c::load_xml_file(FILE *fid)
 {
 	const char		*func = "MP_Dict_c::load_xml_file(FILE *fid)";
 	char			line[MP_MAX_STR_LEN];
+	memset(line, 0, MP_MAX_STR_LEN);
 	char			szBuffer[10000];
+	memset(szBuffer, 0, 10000);
 	TiXmlDocument	doc;
  
 	do
 	{
 		if ( fgets( line,MP_MAX_STR_LEN,fid) == NULL ) 
 		{
-			mp_error_msg( func, "Cannot get the format line. This book will remain un-changed.\n" );
+			mp_error_msg( func, "Cannot read dictionary XML data from the file.\n" );
 			return 0;	
 		}
 		strcat(szBuffer,line);
