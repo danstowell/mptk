@@ -155,7 +155,7 @@ unsigned long int MP_Book_c::printDict( const char *fName, FILE *fid, unsigned l
 		if(fName)
 			this->atom[0]->dict->print(fName); 
 		else if(fid)
-			this->atom[0]->dict->print(fid);
+			this->atom[0]->dict->print(fid, false);
 		else
 		{
 			mp_error_msg( func, "Error writing the dict file.\n" );
@@ -298,7 +298,8 @@ unsigned long int MP_Book_c::print( const char *fName , const char mode, MP_Mask
 unsigned long int MP_Book_c::print( FILE *fid , const char mode, MP_Mask_c* mask, unsigned long int *nAtomRead) 
 {
 	unsigned long int	nAtom = 0;
-	fprintf( fid, "<mptkbook formatversion=\"1\">\n"); 
+	fprintf( fid, "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" ?>\n"); 
+	fprintf( fid, "<mptkbook formatVersion=\"1\">\n"); 
 	printDict( NULL, fid, nAtomRead);
 	nAtom = printBook( fid, mode, mask );
 	fprintf( fid, "</mptkbook>\n"); 
@@ -339,13 +340,22 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 	MP_Atom_c				*newAtom = NULL;
 	MP_Dict_c				*dict;
 
-	// check if the <mptkbook> tag is present -- if so, read libversion -- if not, rewind the stream (!) and drop back to the old ways
+	// xml declaration
 	if ( fgets( line,MP_MAX_STR_LEN,fid) == NULL )
 	{
 		mp_error_msg( func, "Cannot scan the first line of the mptkbook. This book will remain un-changed.\n" );
 		return( 0 );
 	}
-	if (sscanf( line, "<mptkbook formatVersion=\"%[0-9]\">\n", &formatVersion ) != 1 )
+	if(strstr(line, "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" ?>")==NULL){
+		printf("%s -- warning, first line is not the expected XML declaration\n");
+	}
+	// check if the <mptkbook> tag is present -- if so, read libversion -- if not, rewind the stream (!) and drop back to the old ways
+	if ( fgets( line,MP_MAX_STR_LEN,fid) == NULL )
+	{
+		mp_error_msg( func, "Cannot scan the second line of the mptkbook. This book will remain un-changed.\n" );
+		return( 0 );
+	}
+	if (sscanf( line, "<mptkbook formatVersion=\"%i\">\n", &formatVersion ) != 1 )
 	{
 		// Not an error - but we must rewind the stream and drop back to the old ways
 		formatVersion = 0;
@@ -361,11 +371,6 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 			return  1;
 		}
 	}	
-	if ( fgets( line,MP_MAX_STR_LEN,fid) == NULL ) 
-	{
-		mp_error_msg( func, "Cannot get the format line. This book will remain un-changed.\n" );
-		return 0;	
-	}
 
 	char fidFormatStr[3];
 	switch(formatVersion){
@@ -379,13 +384,19 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 			if(!strcmp(fidFormatStr,"bin"))
 				mode = MP_BINARY;
 			else if(!strcmp(fidFormatStr,"txt"))
+				mode = MP_TEXT;
+			else
 			{
 				mp_error_msg( func, "Unknown format string \"%s\". This book will remain un-changed.\n", fidFormatStr );
 				return 0;	
 			}
-				mode = MP_TEXT;
 			break;
 		case 0:
+			if ( fgets( line,MP_MAX_STR_LEN,fid) == NULL ) 
+			{
+				mp_error_msg( func, "Cannot get the format line. This book will remain un-changed.\n" );
+				return 0;	
+			}
 			if(!strcmp(line,"bin\n"))
 				mode = MP_BINARY;
 			if(!strcmp(line,"txt\n"))

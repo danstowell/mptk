@@ -336,9 +336,11 @@ int MP_Dict_c::load_xml_file(FILE *fid)
 {
 	const char		*func = "MP_Dict_c::load_xml_file(FILE *fid)";
 	char			line[MP_MAX_STR_LEN];
-	char			szBuffer[10000];
+	const size_t szBuffer_size = 10000;
+	char			szBuffer[szBuffer_size];
 	TiXmlDocument	doc;
- 
+
+ 	memset(szBuffer, 0, szBuffer_size);
 	do
 	{
 		if ( fgets( line,MP_MAX_STR_LEN,fid) == NULL ) 
@@ -446,6 +448,10 @@ int MP_Dict_c::print( const char *fName )
 /**********************/
 /* Printing to a file */
 bool MP_Dict_c::print( FILE *fid )
+{
+	print(fid, true);    
+}
+bool MP_Dict_c::print( FILE *fid, bool withXmlDecl )
 {    
 	const char	*func = "MP_Dict_c::print( FILE *fid )";
 	map< string, string, mp_ltstring>* paramMap = NULL; 
@@ -458,8 +464,10 @@ bool MP_Dict_c::print( FILE *fid )
 	TiXmlElement *root;
 
 	// Declaring the header
-	decl = new TiXmlDeclaration( "1.0", "ISO-8859-1", "" );  
-	doc.LinkEndChild( decl );  
+	if(withXmlDecl){
+		decl = new TiXmlDeclaration( "1.0", "ISO-8859-1", "" );  
+		doc.LinkEndChild( decl );
+	}
 
 	// Declaring the "dict" tag
 	root = new TiXmlElement( "dict" );  
