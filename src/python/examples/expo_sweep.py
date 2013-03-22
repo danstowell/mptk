@@ -16,9 +16,6 @@ import os.path
 import mptk
 import mptkplot
 
-# Ensure MPTK is initialised
-mptk.loadconfig('/usr/local/mptk/path.xml') # NOTE: you may need to customise this path
-
 ##################################################
 # USER SETTINGS - you can change these if you like
 
@@ -35,6 +32,9 @@ sigmul = 0.5
 noiselev = 0.05
 sigdur = 4
 ##################################################
+
+# Ensure MPTK is initialised
+mptk.loadconfig('/usr/local/mptk/path.xml') # NOTE: you may need to customise this path
 
 # define a function that helps us generate the exponential frequency curve
 def sweep_pos_to_freq(pos):
