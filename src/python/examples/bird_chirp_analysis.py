@@ -33,14 +33,14 @@ dictpaths = {
 # Output folder - by default we'll output to the current working directory
 outdir = '.'
 
-wavpath = "/usr/local/mptk/reference/signal/chiffchaff.wav" # TODO -- you may need to change this
+wavpath = "@MPTK_CHIFFCHAFF_FILENAME@" # you may need to customise this
 
 plotmaxfreq = 10000
 
 ###################################
 
 # Ensure MPTK is initialised
-mptk.loadconfig('/usr/local/mptk/path.xml') # NOTE: you may need to customise this path
+mptk.loadconfig('@MPTK_CONFIG_FILENAME@') # NOTE: you may need to customise this path
 
 # We define a function that will do our analysis.
 # This python file can be used as a module (so you can use this function)

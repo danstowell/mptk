@@ -25,7 +25,7 @@ from specgram_anywave_gmmstuff import *
 # USER SETTINGS
 
 basepath = '.'
-wavpath = "/usr/local/mptk/reference/signal/chiffchaff.wav" # TODO -- you may need to change this
+wavpath = "@MPTK_CHIFFCHAFF_FILENAME@" # you may need to customise this - or feel free to try a different file
 
 fs=44100.0
 hop=0.5
@@ -40,7 +40,7 @@ bintotime = (framelen * hop)/fs
 #######################################################
 
 # Ensure MPTK is initialised
-mptk.loadconfig('/usr/local/mptk/path.xml') # NOTE: you may need to customise this path
+mptk.loadconfig('@MPTK_CONFIG_FILENAME@') # NOTE: you may need to customise this path
 
 def coswin(len):
 	return np.array([np.sin(x * np.pi / len)**2 for x in range(len)])

@@ -34,7 +34,7 @@ sigdur = 4
 ##################################################
 
 # Ensure MPTK is initialised
-mptk.loadconfig('/usr/local/mptk/path.xml') # NOTE: you may need to customise this path
+mptk.loadconfig('@MPTK_CONFIG_FILENAME@') # NOTE: you may need to customise this path
 
 # define a function that helps us generate the exponential frequency curve
 def sweep_pos_to_freq(pos):
