@@ -194,22 +194,21 @@ unsigned long int MP_Book_c::printBook( FILE *fid , const char mode, MP_Mask_c* 
 				nAtom++;
 	}
 
-	// print the book format
+	// Print the book header, inc format
+	const char* formatString;
 	switch(mode)
 	{
 		case MP_TEXT:
-			fprintf( fid, "txt\n" );
+			formatString = "txt";
 			break;
 		case MP_BINARY:
-			fprintf( fid, "bin\n" );
+			formatString = "bin";
 			break;
 		default:
 			mp_error_msg( func, "Unknown write mode.\n" );
 			return 0;
 	}
-
-	// Print the book header
-	fprintf( fid, "<book nAtom=\"%lu\" numChans=\"%d\" numSamples=\"%lu\" sampleRate=\"%d\" libVersion=\"%s\">\n", nAtom, numChans, numSamples, sampleRate, VERSION );
+	fprintf( fid, "<book nAtom=\"%lu\" numChans=\"%d\" numSamples=\"%lu\" sampleRate=\"%d\" libVersion=\"%s\" format=\"%s\">\n", nAtom, numChans, numSamples, sampleRate, VERSION, formatString );
 
 	// Print the atoms
 	if ( mask == NULL ) 
@@ -284,17 +283,13 @@ unsigned long int MP_Book_c::print( const char *fName , const char mode, MP_Mask
 	FILE				*fid;
 	unsigned long int	nAtom = 0;
 
-	printDict( fName, NULL, nAtomRead);
-
-	if ( ( fid = fopen( fName, "ab" ) ) == NULL ) 
+	if ( ( fid = fopen( fName, "wb" ) ) == NULL ) 
 	{
 		mp_error_msg( "MP_Book_c::print(fname,mask)","Could not open file %s to print a book.\n", fName );
 		return( 0 );
 	}
-  
-	nAtom = printBook( fid, mode, mask );
+	nAtom = print( fid, mode, mask, nAtomRead );
 	fclose( fid );
-
 	return ( nAtom );
 }
 
@@ -303,8 +298,10 @@ unsigned long int MP_Book_c::print( const char *fName , const char mode, MP_Mask
 unsigned long int MP_Book_c::print( FILE *fid , const char mode, MP_Mask_c* mask, unsigned long int *nAtomRead) 
 {
 	unsigned long int	nAtom = 0;
+	fprintf( fid, "<mptkbook formatversion=\"1\">\n"); 
 	printDict( NULL, fid, nAtomRead);
 	nAtom = printBook( fid, mode, mask );
+	fprintf( fid, "</mptkbook>\n"); 
 	return ( nAtom );
 }
 
@@ -331,6 +328,7 @@ unsigned long int MP_Book_c::load( FILE *fid )
 unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 {
 	const char				*func = "MP_Book_c::load(fid)";
+	int formatVersion; // Different variations of the XML stream format
 	unsigned int			fidNumChans;
 	int						fidSampleRate;
 	unsigned long int		i, fidNumAtoms, fidNumSamples;
@@ -340,6 +338,19 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 	char					str[MP_MAX_STR_LEN];
 	MP_Atom_c				*newAtom = NULL;
 	MP_Dict_c				*dict;
+
+	// check if the <mptkbook> tag is present -- if so, read libversion -- if not, rewind the stream (!) and drop back to the old ways
+	if ( fgets( line,MP_MAX_STR_LEN,fid) == NULL )
+	{
+		mp_error_msg( func, "Cannot scan the first line of the mptkbook. This book will remain un-changed.\n" );
+		return( 0 );
+	}
+	if (sscanf( line, "<mptkbook formatVersion=\"%[0-9]\">\n", &formatVersion ) != 1 )
+	{
+		// Not an error - but we must rewind the stream and drop back to the old ways
+		formatVersion = 0;
+		rewind(fid);
+	}
 
 	if(withDict){
 		// Retrieve the dictionary
@@ -356,17 +367,43 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 		return 0;	
 	}
 
-	if(!strcmp(line,"bin\n"))
-		mode = MP_BINARY;
-	if(!strcmp(line,"txt\n"))
-		mode = MP_TEXT;
-
-	// Read the header
-	if ( ( fgets( line,MP_MAX_STR_LEN,fid) == NULL ) || (sscanf( line, "<book nAtom=\"%lu\" numChans=\"%d\" numSamples=\"%lu\" sampleRate=\"%d\" libVersion=\"%[0-9a-z.]\">\n", &fidNumAtoms, &fidNumChans, &fidNumSamples, &fidSampleRate, str ) != 5 )) 
-	{
-		mp_error_msg( func, "Cannot scan the book header. This book will remain un-changed.\n" );
-		return( 0 );
+	char fidFormatStr[3];
+	switch(formatVersion){
+		case 1:
+			// Read the header
+			if ( ( fgets( line,MP_MAX_STR_LEN,fid) == NULL ) || (sscanf( line, "<book nAtom=\"%lu\" numChans=\"%d\" numSamples=\"%lu\" sampleRate=\"%d\" libVersion=\"%[0-9a-z.]\" format=\"%[0-9a-z.]\">\n", &fidNumAtoms, &fidNumChans, &fidNumSamples, &fidSampleRate, str, fidFormatStr ) != 6 )) 
+			{
+				mp_error_msg( func, "Cannot scan the book header. This book will remain un-changed.\n" );
+				return( 0 );
+			}
+			if(!strcmp(fidFormatStr,"bin"))
+				mode = MP_BINARY;
+			else if(!strcmp(fidFormatStr,"txt"))
+			{
+				mp_error_msg( func, "Unknown format string \"%s\". This book will remain un-changed.\n", fidFormatStr );
+				return 0;	
+			}
+				mode = MP_TEXT;
+			break;
+		case 0:
+			if(!strcmp(line,"bin\n"))
+				mode = MP_BINARY;
+			if(!strcmp(line,"txt\n"))
+				mode = MP_TEXT;
+			// Read the header
+			if ( ( fgets( line,MP_MAX_STR_LEN,fid) == NULL ) || (sscanf( line, "<book nAtom=\"%lu\" numChans=\"%d\" numSamples=\"%lu\" sampleRate=\"%d\" libVersion=\"%[0-9a-z.]\">\n", &fidNumAtoms, &fidNumChans, &fidNumSamples, &fidSampleRate, str ) != 5 )) 
+			{
+				mp_error_msg( func, "Cannot scan the book header. This book will remain un-changed.\n" );
+				return( 0 );
+			}
+			break;
+		default:
+			mp_error_msg( func, "Unknown <mptkbook> formatVersion: %i\n", formatVersion);
+			return 1;
+			break;
 	}
+
+
 	// Read the atoms
 	for ( i=0; i<fidNumAtoms; i++ )
 	{
