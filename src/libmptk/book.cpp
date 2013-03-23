@@ -184,7 +184,7 @@ unsigned long int MP_Book_c::printBook( FILE *fid , const char mode, MP_Mask_c* 
 				nAtom++;
 	}
 
-	if(!printBook_opening(fid, mode, mask, nAtom)){
+	if(!printBook_opening(fid, mode, nAtom)){
 		return 0;
 	}
 	if((nAtom = printBook_atoms(fid, mode, mask, nAtom))==0){
@@ -197,7 +197,7 @@ unsigned long int MP_Book_c::printBook( FILE *fid , const char mode, MP_Mask_c* 
 }
 
 
-bool MP_Book_c::printBook_opening( FILE *fid , const char mode, MP_Mask_c* mask, unsigned long int nAtom){
+bool MP_Book_c::printBook_opening( FILE *fid , const char mode, unsigned long int nAtom){
 	// Print the book header, inc format
 	const char			*func = "MP_Book_c::printBook_opening()";
 	const char* formatString;

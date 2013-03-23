@@ -115,7 +115,7 @@ class MP_Book_c
 	MPTK_LIB_EXPORT unsigned long int printDict( const char *fName, FILE *fid);
 	MPTK_LIB_EXPORT unsigned long int printBook( FILE *fid , const char mode, MP_Mask_c* mask);
 	/** \brief These "components" of printBook() are also used by mpcat to merge multiple books */
-	MPTK_LIB_EXPORT bool printBook_opening( FILE *fid , const char mode, MP_Mask_c* mask, unsigned long int nAtom);
+	MPTK_LIB_EXPORT bool printBook_opening( FILE *fid , const char mode, unsigned long int nAtom);
 	MPTK_LIB_EXPORT unsigned long int printBook_atoms( FILE *fid , const char mode, MP_Mask_c* mask, unsigned long int nAtom);
 	MPTK_LIB_EXPORT bool printBook_closing( FILE *fid );
 	/** \brief Same as MP_Book_c::print (FILE *fid, const char mode, char* mask) but with a file name */

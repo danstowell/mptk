@@ -39,6 +39,8 @@
 #include "libgetopt/getopt.h"
 
 const char* func = "mpcat";
+const size_t maxNumBooks = 64; // hard-coded for now. to revisit.
+
 
 /********************/
 /* Global constants */
@@ -207,11 +209,15 @@ int parse_args(int argc, char **argv)
 /**************************************************/
 int main( int argc, char **argv ) 
 {
-	MP_Book_c			*book;
-	MP_Book_c			*combinedBook = NULL;
-	int					numBooks = 0;
-	int					iIndexNumAtomsPerBook = 0;
-	unsigned long nAtomRead;
+	//MP_Book_c			*book;
+	//MP_Book_c			*combinedBook = NULL;
+	MP_Book_c			**allBooks;
+	size_t				numBooks = 0;
+	size_t				nAtomRead = 0;
+	char				mode;
+	FILE		*fid;
+
+	allBooks = (MP_Book_c**)malloc(maxNumBooks * sizeof(MP_Book_c));
 
 	// Parse the command line
 	if ( argc == 1 ) 
@@ -226,16 +232,19 @@ int main( int argc, char **argv )
 	if(! (MPTK_Env_c::get_env()->load_environment_if_needed(configFileName)) )
 		exit(ERR_LOADENV);
 
-	// Load all the books and append them to the first one:
-	bool firstBook = true;
-	while ( optind < (argc-1) ) 
+	// Load all the books into memory (we can't stream one by one because of dict header)
+	while ( optind < (argc-1) )
 	{
 		bookInFileName = argv[optind++];
-		numBooks++;
 		mp_debug_msg(MP_DEBUG_GENERAL, func, "Read book file name [%s] for book number [%d].\n",bookInFileName, numBooks );
 
+		if(numBooks >= maxNumBooks){
+			mp_error_msg( func, "Number of books (%i) is greater than the fixed limit (%i).\n", numBooks, maxNumBooks);
+			return (ERR_BOOK);
+		}
+
 		if ( !strcmp( bookInFileName, "-" ) ){
-			if((book = MP_Book_c::create(stdin)) == NULL)
+			if((allBooks[numBooks] = MP_Book_c::create(stdin)) == NULL)
 			{
 				mp_error_msg( func, "Can't create a new book from stdin.\n" );
 				fflush( stderr );
@@ -249,7 +258,7 @@ int main( int argc, char **argv )
 				return (ERR_BOOK);
 			}
 
-			if((book = MP_Book_c::create(fid)) == NULL)
+			if((allBooks[numBooks] = MP_Book_c::create(fid)) == NULL)
 			{
 				mp_error_msg( func, "Can't create a new book from file handle for %s.\n", bookInFileName );
 				fflush( stderr );
@@ -257,9 +266,8 @@ int main( int argc, char **argv )
 			}
 			fclose ( fid );  
 		}
-		nAtomRead = book->numAtoms;
 
-		if ( nAtomRead == 0 ) 
+		if ( allBooks[numBooks]->numAtoms == 0 ) 
 		{
 			if ( !MPC_QUIET ) 
 			{
@@ -267,46 +275,91 @@ int main( int argc, char **argv )
 				fflush( stderr );
 			}
 		}
-
-		if(firstBook){
-			combinedBook = book;
-			firstBook = false;
-		}else if(combinedBook->append(book) == 0)
-		{
-			mp_error_msg( func, "Can't append this book to the combined book.\n" );
-		}
+		nAtomRead += allBooks[numBooks]->numAtoms;
 
 		if ( MPC_VERBOSE ) 
-			fprintf ( stderr, "mpcat msg -- Loaded [%lu] atoms for book number [%d] from file [%s].\n", nAtomRead, numBooks, bookInFileName );
-
-		if(!firstBook){
-			// Clean the house
-			delete book;
-		}
+			fprintf ( stderr, "mpcat msg -- Loaded [%lu] atoms for book number [%d] from file [%s].\n", allBooks[numBooks]->numAtoms, numBooks, bookInFileName );
+		++numBooks; // this must come at end of loop since used for indexing
 	}
 
-	// Write the book
-	if ( !strcmp( bookOutFileName, "-" ) ) 
-	{
-		if ( combinedBook->print( stdout, MP_TEXT, NULL ) == 0 ) 
+
+	// decide mode, open a filehandle if needed
+	if ( strcmp( bookOutFileName, "-" ) ){
+		mode = MP_TEXT;
+		if((fid = fopen(bookOutFileName,"w")) == NULL)
 		{
-			fprintf ( stderr, "mpcat error -- No atoms could be written to stdout.\n" );
-			return( ERR_WRITE );
+			mp_error_msg( func,"Could not open file %s to write\n", bookOutFileName );
+			return 1;
+		}
+	}else{
+		mode = MP_BINARY;
+		fid = stdout;
+	}
+
+	////////////////////////////////////////////////////////////////////////////
+	// Here we write the XML. Note, it "half"-uses TinyXml, because if many atoms there may be too much XML for memory.
+	// Write the header
+	fprintf( fid, "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" ?>\n"); 
+	fprintf( fid, "<mptkbook formatVersion=\"1\">\n");
+	// Concatenate the dictionaries' XML and write them
+
+	TiXmlDocument doc;
+	TiXmlElement* version;
+	TiXmlElement *root;
+	root = new TiXmlElement( "dict" );  
+	doc.LinkEndChild( root ); 
+	version = new TiXmlElement( "libVersion" );  
+	version->LinkEndChild( new TiXmlText( VERSION ));
+	root->LinkEndChild(version);
+	
+	for(int i=0; i<numBooks; ++i){
+		if(!allBooks[i]->atom[0]->dict->appendBlocksToXml( root ))
+		{
+			mp_error_msg( func, "dict failed to append its blocks to XML in memory\n");
+			//assert(false);
+			return false;
 		}
 	}
-	else 
-	{
-		if ( combinedBook->print( bookOutFileName, MP_BINARY, NULL ) == 0 ) 
-		{
-			fprintf ( stderr, "mpcat error -- No atoms could be written to file [%s].\n", bookOutFileName );
-			return( ERR_WRITE );
+	if (!doc.SaveFile( fid ))
+	{ 
+		mp_error_msg( func,"Could not save the file\n");
+		return false;
+	}
+
+
+	// Write the book header
+	if(!allBooks[0]->printBook_opening(fid, mode, nAtomRead)){
+		fprintf ( stderr, "mpcat error -- could not write <book> opening\n" );
+		return ERR_WRITE;
+	}
+	// Write all atoms
+	for(int i=0; i<numBooks; ++i){
+		if((allBooks[i]->printBook_atoms(fid, mode, NULL, nAtomRead))==0){
+			fprintf ( stderr, "mpcat error -- could not write book number %i\n", i);
+			return ERR_WRITE;
 		}
 	}
+	// Write the book closer and the grand closer
+	if(!allBooks[0]->printBook_closing(fid)){
+		fprintf ( stderr, "mpcat error -- could not write <book> closing\n" );
+		return ERR_WRITE;
+	}
+	fprintf( fid, "</mptkbook>\n");
+
+
+	// close filehandle if needed
+	if ( !strcmp( bookOutFileName, "-" ) ){
+		fclose(fid);
+	}
+
 	if ( MPC_VERBOSE ) 
-	    fprintf( stderr, "mpcat msg -- The resulting book contains [%lu] atoms.\n", book->numAtoms );
+		fprintf( stderr, "mpcat msg -- The resulting book contains [%lu] atoms.\n", nAtomRead );
 
 	// Clean the house
-	delete( combinedBook );
+	for(int i=0; i<numBooks; ++i){
+		delete allBooks[i];
+	}
+	delete( allBooks );
 	// Release Mptk environnement
 	MPTK_Env_c::get_env()->release_environment();
   
