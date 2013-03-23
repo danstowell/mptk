@@ -270,6 +270,7 @@ int main( int argc, char **argv )
 
 		if(firstBook){
 			combinedBook = book;
+			firstBook = false;
 		}else if(combinedBook->append(book) == 0)
 		{
 			mp_error_msg( func, "Can't append this book to the combined book.\n" );

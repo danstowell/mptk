@@ -147,6 +147,12 @@ unsigned long int MP_Book_c::printDict( const char *fName, FILE *fid)
 	const char			*func = "MP_Book_c::printDict(fid,mask)";
 	unsigned long int	nAtom = 0;
 
+	if(this->numAtoms==0)
+	{
+		mp_error_msg( func, "Error writing the dict file - cannot, since no atoms.\n" );
+		return 0;
+	}
+
 	if(fName)
 		this->atom[0]->dict->print(fName); 
 	else if(fid)
@@ -696,13 +702,25 @@ int MP_Book_c::append( MP_Atom_c *newAtom ) {
   return( 1 );
 }
 /******************/
-/* Append an atom */
+/* Append a book  */
 unsigned long int MP_Book_c::append( MP_Book_c *newBook ) {
 	const char* func = "MP_Book_c::append(*book)";
 	unsigned long int nAppend = 0;
+	MP_Dict_c* newBookDict = newBook->atom[0]->dict;
 	if (is_compatible_with(newBook)){
+/* ??? is this the right idea?
+		// append the dictionary
+		for(unsigned int blk=0; blk < newBookDict->numBlocks; ++blk){
+			if(atom[0]->dict->add_block( newBookDict->block[blk] )==0){
+				mp_error_msg( func, "Unable to append blocks from other dictionary to this one.\n");
+				return (0);
+			}
+		}
+*/		// append the found atoms
 		for (unsigned long int i = 0 ; i< newBook->numAtoms; i++){
-			if (append( newBook->atom[i] ) ) nAppend++;
+			if (append( newBook->atom[i] ) ){
+				++nAppend;
+			}
 		}
 		return (nAppend);
 	}
