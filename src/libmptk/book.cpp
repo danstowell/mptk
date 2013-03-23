@@ -167,12 +167,12 @@ unsigned long int MP_Book_c::printDict( const char *fName, FILE *fid)
 }
 
 /********************************/
-/* Print some atoms to a stream */
+/* Print some atoms to a stream - note that this does not do the dict, just the inner <book> - print() does the full XML */
 unsigned long int MP_Book_c::printBook( FILE *fid , const char mode, MP_Mask_c* mask) 
 {
-	const char			*func = "MP_Book_c::printBook(fid,mask)";
-	unsigned long int	nAtom = 0;
-	unsigned long int	i;
+	//const char			*func = "MP_Book_c::printBook(fid,mask)";
+	unsigned long int nAtom = 0;
+	unsigned long int i;
 
 	// determine how many atoms the printed book will contain
 	if ( mask == NULL ) 
@@ -184,7 +184,22 @@ unsigned long int MP_Book_c::printBook( FILE *fid , const char mode, MP_Mask_c* 
 				nAtom++;
 	}
 
+	if(!printBook_opening(fid, mode, mask, nAtom)){
+		return 0;
+	}
+	if((nAtom = printBook_atoms(fid, mode, mask, nAtom))==0){
+		return 0;
+	}
+	if(!printBook_closing(fid)){
+		return 0;
+	}
+	return( nAtom );
+}
+
+
+bool MP_Book_c::printBook_opening( FILE *fid , const char mode, MP_Mask_c* mask, unsigned long int nAtom){
 	// Print the book header, inc format
+	const char			*func = "MP_Book_c::printBook_opening()";
 	const char* formatString;
 	switch(mode)
 	{
@@ -196,74 +211,48 @@ unsigned long int MP_Book_c::printBook( FILE *fid , const char mode, MP_Mask_c* 
 			break;
 		default:
 			mp_error_msg( func, "Unknown write mode.\n" );
-			return 0;
+			return false;
 	}
-	fprintf( fid, "<book nAtom=\"%lu\" numChans=\"%d\" numSamples=\"%lu\" sampleRate=\"%d\" libVersion=\"%s\" format=\"%s\">\n", nAtom, numChans, numSamples, sampleRate, VERSION, formatString );
+	fprintf( fid, "<book nAtom=\"%lu\" numChans=\"%d\" numSamples=\"%lu\" sampleRate=\"%d\" libVersion=\"%s\" format=\"%s\">\n", 
+			nAtom, numChans, numSamples, sampleRate, VERSION, formatString );
+	return true;
+}
 
-	// Print the atoms
-	if ( mask == NULL ) 
+bool MP_Book_c::printBook_closing( FILE *fid){
+	fprintf( fid, "</book>\n"); 
+	return true;
+}
+
+unsigned long int MP_Book_c::printBook_atoms( FILE *fid , const char mode, MP_Mask_c* mask, unsigned long int nAtom){
+	const char			*func = "MP_Book_c::printBook_atoms()";
+	unsigned long int i;
+	for ( i = 0, nAtom = 0; i < numAtoms; i++ ) 
 	{
-		for ( nAtom = 0; nAtom < numAtoms; nAtom++ )
+		if ( (mask==NULL) || (mask->sieve[i]) )
 		{
 			if ( mode == MP_TEXT ) 
 			{
 				fprintf( fid, "\t<atom type=\"");
-				fprintf( fid, "%s", atom[nAtom]->type_name() );
+				fprintf( fid, "%s", atom[i]->type_name() );
 				fprintf( fid, "\">\n" );
 				// Call the atom's write function
-				atom[nAtom]->write( fid, mode );
+				atom[i]->write( fid, mode );
+				fprintf( fid, "\t</atom>\n" );
 			}
 			else if( mode == MP_BINARY ) 
 			{
-				fprintf( fid, "%s\n", atom[nAtom]->type_name() );
+				fprintf( fid, "%s\n", atom[i]->type_name() );
 				// Call the atom's write function
-				atom[nAtom]->write( fid, mode );
+				atom[i]->write( fid, mode );
 			} 
 			else 
 				mp_error_msg( func, "Unknown write mode for Atom, Atom is skipped." );
 
-			// Print the closing tag if needed
-			if ( mode == MP_TEXT ) 
-				fprintf( fid, "\t</atom>\n" );
+			nAtom++;
 		}
 	}
-	else 
-	{
-		for ( i = 0, nAtom = 0; i < numAtoms; i++ ) 
-		{
-			if ( mask->sieve[i] ) 
-			{
-				if ( mode == MP_TEXT ) 
-				{
-					fprintf( fid, "\t<atom type=\"");
-					fprintf( fid, "%s", atom[i]->type_name() );
-					fprintf( fid, "\">\n" );
-					// Call the atom's write function
-					atom[i]->write( fid, mode );
-				}
-				else if( mode == MP_BINARY ) 
-				{
-					fprintf( fid, "%s\n", atom[i]->type_name() );
-					// Call the atom's write function
-					atom[i]->write( fid, mode );
-				} 
-				else 
-					mp_error_msg( func, "Unknown write mode for Atom, Atom is skipped." );
-		
-				// Print the closing tag if needed
-				if ( mode == MP_TEXT ) 
-					fprintf( fid, "\t</atom>\n" );
-  
-				nAtom++;
-			}
-		}
-	}
-
-	// print the closing </book> tag
-	fprintf( fid, "</book>\n"); 
-	
-	return( nAtom );
-}
+	return nAtom;
+}	
 
 
 /******************************/
