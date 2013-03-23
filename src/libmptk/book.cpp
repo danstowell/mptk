@@ -99,7 +99,7 @@ MP_Book_c* MP_Book_c::create( FILE *fid )
 {
   const char* func = "MP_Book_c::create(fid)";
   MP_Book_c *newBook = create();
-  if(!newBook->load(fid, false))
+  if(!newBook->load(fid, true))
   {
     mp_error_msg( func, "Created new book, but failed to load data into it.\n" );
     return( NULL );
@@ -142,35 +142,19 @@ MP_Book_c::~MP_Book_c() {
 
 /********************************/
 /* Print some atoms to a stream */
-unsigned long int MP_Book_c::printDict( const char *fName, FILE *fid, unsigned long int *nAtomRead) 
+unsigned long int MP_Book_c::printDict( const char *fName, FILE *fid) 
 {
-	const char			*func = "MP_Book_c::print(fid,mask)";
-	unsigned long int	iIndexAtom = 0;		
+	const char			*func = "MP_Book_c::printDict(fid,mask)";
 	unsigned long int	nAtom = 0;
-	unsigned long int	iIndexAtomRead = 0;
 
-	// Print the atoms read
-	if ( nAtomRead == NULL ) 
-	{
-		if(fName)
-			this->atom[0]->dict->print(fName); 
-		else if(fid)
-			this->atom[0]->dict->print(fid, false);
-		else
-		{
-			mp_error_msg( func, "Error writing the dict file.\n" );
-			return 0;
-		}
-	}
+	if(fName)
+		this->atom[0]->dict->print(fName); 
+	else if(fid)
+		this->atom[0]->dict->print(fid, false);
 	else
 	{
-		for (iIndexAtom = 0; iIndexAtom<numAtoms; iIndexAtom += nAtomRead[iIndexAtomRead++])
-		{
-			if(iIndexAtom == 0)
-				this->atom[0]->dict->print(fName);
-			else
-				this->atom[iIndexAtom]->dict->printMultiDict(fName);
-		}
+		mp_error_msg( func, "Error writing the dict file - both fName and fid are null.\n" );
+		return 0;
 	}
 
 	return( nAtom );
@@ -180,7 +164,7 @@ unsigned long int MP_Book_c::printDict( const char *fName, FILE *fid, unsigned l
 /* Print some atoms to a stream */
 unsigned long int MP_Book_c::printBook( FILE *fid , const char mode, MP_Mask_c* mask) 
 {
-	const char			*func = "MP_Book_c::print(fid,mask)";
+	const char			*func = "MP_Book_c::printBook(fid,mask)";
 	unsigned long int	nAtom = 0;
 	unsigned long int	i;
 
@@ -278,7 +262,7 @@ unsigned long int MP_Book_c::printBook( FILE *fid , const char mode, MP_Mask_c* 
 
 /******************************/
 /* Print some atoms to a file */
-unsigned long int MP_Book_c::print( const char *fName , const char mode, MP_Mask_c* mask, unsigned long int *nAtomRead) 
+unsigned long int MP_Book_c::print( const char *fName , const char mode, MP_Mask_c* mask) 
 {
 	FILE				*fid;
 	unsigned long int	nAtom = 0;
@@ -288,19 +272,19 @@ unsigned long int MP_Book_c::print( const char *fName , const char mode, MP_Mask
 		mp_error_msg( "MP_Book_c::print(fname,mask)","Could not open file %s to print a book.\n", fName );
 		return( 0 );
 	}
-	nAtom = print( fid, mode, mask, nAtomRead );
+	nAtom = print( fid, mode, mask);
 	fclose( fid );
 	return ( nAtom );
 }
 
 /******************************/
 /* Print some atoms to a file */
-unsigned long int MP_Book_c::print( FILE *fid , const char mode, MP_Mask_c* mask, unsigned long int *nAtomRead) 
+unsigned long int MP_Book_c::print( FILE *fid , const char mode, MP_Mask_c* mask) 
 {
 	unsigned long int	nAtom = 0;
 	fprintf( fid, "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" ?>\n"); 
-	fprintf( fid, "<mptkbook formatVersion=\"1\">\n"); 
-	printDict( NULL, fid, nAtomRead);
+	fprintf( fid, "<mptkbook formatVersion=\"1\">\n");
+	printDict( NULL, fid);
 	nAtom = printBook( fid, mode, mask );
 	fprintf( fid, "</mptkbook>\n"); 
 	return ( nAtom );
@@ -309,14 +293,14 @@ unsigned long int MP_Book_c::print( FILE *fid , const char mode, MP_Mask_c* mask
 /***********************************/
 /* Print all the atoms to a stream */
 unsigned long int MP_Book_c::print( FILE *fid, const char mode ) {
-  return( print( fid, mode, NULL, NULL ));
+	return( print( fid, mode, NULL));
 }
 
 
 /***********************************/
 /* Print all the atoms to a file   */
 unsigned long int MP_Book_c::print( const char *fName, const char mode ) {
-  return( print( fName, mode, NULL, NULL) );
+	return( print( fName, mode, NULL) );
 }
 
 
@@ -328,7 +312,7 @@ unsigned long int MP_Book_c::load( FILE *fid )
 }
 unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 {
-	const char				*func = "MP_Book_c::load(fid)";
+	const char				*func = "MP_Book_c::load(fid, bool)";
 	int formatVersion; // Different variations of the XML stream format
 	unsigned int			fidNumChans;
 	int						fidSampleRate;
@@ -349,7 +333,7 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 		return( 0 );
 	}
 	if(strstr(line, "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" ?>")==NULL){
-		printf("%s -- warning, first line is not the expected XML declaration\n");
+		printf("%s -- warning, first line is not the expected XML declaration: %s\n", func, line);
 	}
 	// check if the <mptkbook> tag is present -- if so, read libversion -- if not, rewind the stream (!) and drop back to the old ways
 	if ( fgets( line,MP_MAX_STR_LEN,fid) == NULL )
@@ -380,6 +364,7 @@ unsigned long int MP_Book_c::load( FILE *fid, bool withDict )
 			// Read the header
 			if ( ( fgets( line,MP_MAX_STR_LEN,fid) == NULL ) || (sscanf( line, "<book nAtom=\"%lu\" numChans=\"%d\" numSamples=\"%lu\" sampleRate=\"%d\" libVersion=\"%[0-9a-z.]\" format=\"%[0-9a-z.]\">\n", &fidNumAtoms, &fidNumChans, &fidNumSamples, &fidSampleRate, str, fidFormatStr ) != 6 )) 
 			{
+				printf(line);
 				mp_error_msg( func, "Cannot scan the book header. This book will remain un-changed.\n" );
 				return( 0 );
 			}

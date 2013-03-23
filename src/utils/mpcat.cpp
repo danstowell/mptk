@@ -208,10 +208,11 @@ int parse_args(int argc, char **argv)
 int main( int argc, char **argv ) 
 {
 	MP_Book_c			*book;
+	MP_Book_c			*combinedBook = NULL;
 	int					numBooks = 0;
 	int					iIndexNumAtomsPerBook = 0;
-	unsigned long int	*nAtomRead;
- 
+	unsigned long nAtomRead;
+
 	// Parse the command line
 	if ( argc == 1 ) 
 		usage();
@@ -225,58 +226,68 @@ int main( int argc, char **argv )
 	if(! (MPTK_Env_c::get_env()->load_environment_if_needed(configFileName)) )
 		exit(ERR_LOADENV);
 
-	// Make the book
-	if((book = MP_Book_c::create()) == NULL)
-    {
-		mp_error_msg( func, "Can't create a new book.\n" );
-		fflush( stderr );
-		return( ERR_BOOK );
-	}
-
-	// Allocation of the book Atoms read number
-	nAtomRead = (unsigned long *)calloc(argc - 2,sizeof(unsigned long int));
-	// Beginning the table index
-	iIndexNumAtomsPerBook = 0;
-
-	// Load all the books and appends them to the first one:
+	// Load all the books and append them to the first one:
+	bool firstBook = true;
 	while ( optind < (argc-1) ) 
 	{
 		bookInFileName = argv[optind++];
 		numBooks++;
 		mp_debug_msg(MP_DEBUG_GENERAL, func, "Read book file name [%s] for book number [%d].\n",bookInFileName, numBooks );
 
-		if ( !strcmp( bookInFileName, "-" ) ) 
-		{
-			if ( (nAtomRead[iIndexNumAtomsPerBook++] = book->load( stdin )) == 0 ) 
+		if ( !strcmp( bookInFileName, "-" ) ){
+			if((book = MP_Book_c::create(stdin)) == NULL)
 			{
-				if ( !MPC_QUIET ) 
-				{
-					fprintf ( stderr, "mpcat warning -- Can't read atoms for book number [%d] from stdin. I'm skipping this book.\n",numBooks );
-					fflush( stderr );
-				}
+				mp_error_msg( func, "Can't create a new book from stdin.\n" );
+				fflush( stderr );
+				return( ERR_BOOK );
 			}
-			if ( MPC_VERBOSE ) 
-				fprintf ( stderr, "mpcat msg -- Loaded [%lu] atoms for book number [%d] from stdin.\n",nAtomRead[iIndexNumAtomsPerBook], numBooks );
+		}else{
+			FILE* fid;
+			if((fid = fopen(bookInFileName, "r")) == NULL)
+			{
+				mp_error_msg( func,"Could not open file %s to read book\n", bookInFileName );
+				return (ERR_BOOK);
+			}
+
+			if((book = MP_Book_c::create(fid)) == NULL)
+			{
+				mp_error_msg( func, "Can't create a new book from file handle for %s.\n", bookInFileName );
+				fflush( stderr );
+				return( ERR_BOOK );
+			}
+			fclose ( fid );  
 		}
-		else 
+		nAtomRead = book->numAtoms;
+
+		if ( nAtomRead == 0 ) 
 		{
-			if ( (nAtomRead[iIndexNumAtomsPerBook++] = book->load( bookInFileName )) == 0 ) 
+			if ( !MPC_QUIET ) 
 			{
-				if ( !MPC_QUIET ) 
-				{
-					fprintf ( stderr, "mpcat warning -- Can't read atoms for book number [%d] from file [%s]. I'm skipping this book.\n",numBooks, bookInFileName );
-					fflush( stderr );
-				}
+				fprintf ( stderr, "mpcat warning -- Can't read atoms for book number [%d] from file [%s]. I'm skipping this book.\n",numBooks, bookInFileName );
+				fflush( stderr );
 			}
-			if ( MPC_VERBOSE ) 
-				fprintf ( stderr, "mpcat msg -- Loaded [%lu] atoms for book number [%d] from file [%s].\n",nAtomRead[iIndexNumAtomsPerBook], numBooks, bookInFileName );
+		}
+
+		if(firstBook){
+			combinedBook = book;
+		}else if(combinedBook->append(book) == 0)
+		{
+			mp_error_msg( func, "Can't append this book to the combined book.\n" );
+		}
+
+		if ( MPC_VERBOSE ) 
+			fprintf ( stderr, "mpcat msg -- Loaded [%lu] atoms for book number [%d] from file [%s].\n", nAtomRead, numBooks, bookInFileName );
+
+		if(!firstBook){
+			// Clean the house
+			delete book;
 		}
 	}
 
 	// Write the book
 	if ( !strcmp( bookOutFileName, "-" ) ) 
 	{
-		if ( book->print( stdout, MP_TEXT, NULL, nAtomRead ) == 0 ) 
+		if ( combinedBook->print( stdout, MP_TEXT, NULL ) == 0 ) 
 		{
 			fprintf ( stderr, "mpcat error -- No atoms could be written to stdout.\n" );
 			return( ERR_WRITE );
@@ -284,7 +295,7 @@ int main( int argc, char **argv )
 	}
 	else 
 	{
-		if ( book->print( bookOutFileName, MP_BINARY, NULL, nAtomRead ) == 0 ) 
+		if ( combinedBook->print( bookOutFileName, MP_BINARY, NULL ) == 0 ) 
 		{
 			fprintf ( stderr, "mpcat error -- No atoms could be written to file [%s].\n", bookOutFileName );
 			return( ERR_WRITE );
@@ -293,10 +304,10 @@ int main( int argc, char **argv )
 	if ( MPC_VERBOSE ) 
 	    fprintf( stderr, "mpcat msg -- The resulting book contains [%lu] atoms.\n", book->numAtoms );
 
-  // Clean the house
-  delete( book );
-  // Release Mptk environnement
-  MPTK_Env_c::get_env()->release_environment();
+	// Clean the house
+	delete( combinedBook );
+	// Release Mptk environnement
+	MPTK_Env_c::get_env()->release_environment();
   
-  return 0;
+	return 0;
 }
