@@ -1,0 +1,51 @@
+\chapter{pyMPTK: using MPTK with Python \label{GettingStartedPython}}
+
+\begin{my_itemize}
+\item decompose signals using MP or CMP, with a variety of atom types (gabor, chirp, anywave, ...)
+\item reconstruct signals from books, including ones manipulated/generated from within python
+\item plotting: a convenient method to plot gabor or chirped atoms
+\end{my_itemize}
+
+Some things not currently present in pyMPTK:
+\begin{my_itemize}
+\item Creating dictionary objects/files directly
+\item Some decomposition methods: GMP, LoCOMP
+\end{my_itemize}
+
+System requirements:
+\begin{my_itemize}
+	\item Python (we tested with 2.7) with the following additional modules:
+\begin{my_itemize}
+\item NumPy
+\item Matplotlib (if you want to plot e.g. using "mptkplot")
+\end{my_itemize}
+\end{my_itemize}
+
+\section{Installation}
+
+When you install MPTK, the CMake option BUILD\_PYTHON\_FILES is ON by default.
+So, if you have the above system requirements, you should be ready to go.
+
+TODO
+
+\section{Quick guide}
+Quick summary of the API:
+
+\begin{verbatim}
+	import mptk
+	mptk.loadconfig(configpath)
+	(book, residual) = mptk.decompose(signal, dictpath, samplerate)
+	signal_remade    = mptk.reconstruct(book, dictpath)
+
+	import mptkplot
+	mptkplot.plot_chirped(book, samplerate)
+\end{verbatim}
+
+Remember the ``loadconfig'' command mentioned above -- it is needed for MPTK
+to know where its plugins (etc) are located.
+
+For fuller examples, please look in the "python" folder in your MPTK install path, for some example scripts.
+
+Or after running ``import mptk'', use the command ``help(mptk)''
+(the contents of that help are included later in this manual, Section \ref{UsePythonFunc}).
+
